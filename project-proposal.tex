@@ -1,0 +1,86 @@
+\documentclass[a4page]{scrartcl}
+
+\usepackage{fullpage}
+\usepackage{url}
+
+\author{Luke Anderson, Jon Gjengset, Jeevana Inala, and Andrew Wang \\
+	\texttt{\{lukea,jfrg,jinala,wangaj\}@mit.edu}
+}
+\title{6.858 project proposal}
+\subtitle{Concolic Execution for Django Applications}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+The third lab exercise in 6.858 uses the z3 solver to implement concolic
+execution for the Zoobar python application. Unfortunately, the framework used
+for the lab is written specifically for Zoobar, and is unlikely to be directly
+appliacble to other web applications. Having access to the power of concolic
+execution could significantly improve a developer's ability to check crucial
+security invariants in their web applications, and so we wish to extend the lab
+3 concolic execution implementation to one that operate on applications that
+are built on top of the popular Django web application framework.
+\end{abstract}
+
+\section{Project stages}
+First, we have to rebuild the Zoobar application functionality using the Django
+framework. As Zoobar is a fairly standard web application, this is a relatively
+small part of the project.
+
+Next, we will instrument the Django source code so that it can support symbolic
+execution of interesting input parameters. For most applications, this is
+likely to be the request URL, the query parameters, the request type
+(GET/POST/PUT/DELETE), and the cookie values.
+
+After instrumenting Django, we will run the Zoobar application with concolic
+execution, and make the modifications to the lab3 concolic execution framework
+that are necessary to get it to run correctly on this new application.
+
+If time allows, we also wish to implement support for the Django
+Object-Relational Mapper (ORM) directly inside the z3 solver. This would allow
+z3 to query the database directly for objects satisfying constraints (using
+SQL) rather than relying on the developer enumerating all database records and
+looking them up using native python operations as in Exercise 5. This should
+substantially improve concolic execution time, and will make it much easier to
+use our framework in complex applications.
+
+\section{Challenges}
+\begin{enumerate}
+	\item Cookies in Django contain session IDs that are then used to look
+		up the variables stored in that user's session. This is
+		substantially more complex than the Zoobar cookies which simply
+		included the username of the user that was logged in.
+		Supporting these kinds of session cookies is vital to being
+		able to test real web applications, and will likely be
+		non-trivial.
+	\item Modifying the lab3 concolic execution framework to support Django
+		applications will probably include extending the set of
+		supported operations supported quite substantially. This is
+		because Django and ``real'' web applications probably exercise
+		a larger subset of python operations.
+	\item The complexity of Django, and many applications running atop it,
+		means the state space can grow very large very quickly. It is
+		likely that we will need to find and implement optimizations in
+		the fuzzer that can avoid potentially exponential runtimes.
+	\item Extending z3 to have support for database queries directly
+		through the Django ORM requires digging through z3 to figure
+		out how to represent arbitrary conditions as SQL where clauses.
+		We will also need to find a way of inferring which symbolic
+		variables in conditions correspond to database objects, and
+		which are plain old variables. Solving this problem is likely
+		going to require deep-seated and non-trivial changes to z3.
+\end{enumerate}
+
+\section{Deliverables}
+\begin{enumerate}
+	\item A rewrite of the Zoobar web application in Django.
+	\item A modified version of Django that supports concolic execution.
+	\item A polished and fleshed-out version of the lab3 concolic execution
+		framework that supports Django web applications out of the box.
+	\item (\textit{Optional}) Django ORM support plugin/patch for the
+		Microsoft z3 solver.
+\end{enumerate}
+
+\end{document}
