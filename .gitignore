@@ -52,7 +52,3 @@ docs/_build/
 
 # PyBuilder
 target/
-
-# LaTeX files
-*.aux
-*.pdf
