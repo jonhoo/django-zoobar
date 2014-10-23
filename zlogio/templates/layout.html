@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" type="text/css" href="/zoobar/media/zoobar.css">
+        <title>
+          {% block title %}{% endblock %} - Zoobar Foundation
+        </title>
+    </head>
+    <body>
+        {% if request.user %}
+        <div id="header">
+          <div><a href="{{ url 'logout' }}">Log out {{ request.user.username }}</a></div>
+        </div>
+        {% endif %}
+        {# Pick a random title for the page. This is funny for about 3 seconds. #}
+        {% with adjectives = ["Inquisitive", "Responsible", "Patriotic", 
+                             "Trustworthy", "Sustainable", "Objective", 
+                             "Disciplined", "Sensible", "Ethical", "Vigilant", 
+                             "Principled", "Awesome"] %}
+        {% with nouns = ["Thinking", "Policy", "Dialogue", "Learning", 
+                        "Discourse", "Research", "Advocacy"] %}
+        {% with adverbs = ["best", "brightest", "foremost", "leading", 
+                          "proven", "loyal", "brave", "meritorious", 
+                          "shrewd", "important", "skillful"] %}
+        {% with pluralnouns = ["thinkers", "minds", "students", "soldiers",
+                              "advocates", "representatives", "researchers"] %}
+        {% with concepts = ["21st-century", "next generation", 
+                           "new world order", "United States", 
+                           "counterinsurgency", "information superhighway"] %}
+      <h1><a href="{{ url 'zapp:index' }}">Zoobar Foundation for {{ adjectives|random }}
+                      {{ nouns|random }}</a></h1>
+      <h2>Supporting the {{ adverbs|random }}
+          {{ pluralnouns|random }} of the {{ concepts|random }}</h2>
+      {% block main %}
+      <div id="main" class="centerpiece">
+        <table>
+          <tr><td>
+             <p>
+               {% for (name, page) in {"Home": "index", "Users": "users", "Transfer": "transfer"}.iteritems() %}
+                 {% if request.get_full_path == url ('zapp:%s' % page) %}
+                   <b>{{ name }}</b>
+                 {% else %}
+                   <a href="{{ url ('zapp:%s' % page) }}">{{ name }}</a>
+                 {% endif %}
+                 {% if name != "Transfer" %} | {% endif %}
+               {% endfor %}
+             </p>
+          </td></tr>
+          <tr><td class="main">
+            {% block content %}{% endblock %}
+          </td></tr>
+        </table>
+      </div>
+      {% block postscript %}{% endblock %}
+      {% endblock %}
+    </body>
+</html>

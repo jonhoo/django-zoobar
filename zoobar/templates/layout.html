@@ -1,0 +1,54 @@
+{% load staticfiles %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" type="text/css" href="{% static "zoobar.css" %}">
+        <title>
+          {% block title %}{% endblock %} - Zoobar Foundation
+        </title>
+    </head>
+    <body>
+        {% if request.user %}
+        <div id="header">
+          <div><a href="{% url 'logout' %}">Log out {{ request.user.username }}</a></div>
+        </div>
+        {% endif %}
+      <h1><a href="{% url 'zapp:index' %}">Zoobar Foundation for Lazy Implementation</a></h1>
+      <h2>Supporting the mediocre hackers of the new world order</h2>
+      {% block main %}
+      <div id="main" class="centerpiece">
+        <table>
+          <tr><td>
+             <p>
+               {% url 'zapp:index' as curl %}
+               {% if request.get_full_path == curl %}
+                 <b>Home</b>
+               {% else %}
+                 <a href="{{ curl }}">Home</a>
+               {% endif %}
+               |
+               {% url 'zapp:users' as curl %}
+               {% if request.get_full_path == curl %}
+                 <b>Users</b>
+               {% else %}
+                 <a href="{{ curl }}">Users</a>
+               {% endif %}
+               |
+               {% url 'zapp:transfer' as curl %}
+               {% if request.get_full_path == curl %}
+                 <b>Transfer</b>
+               {% else %}
+                 <a href="{{ curl }}">Transfer</a>
+               {% endif %}
+             </p>
+          </td></tr>
+          <tr><td class="main">
+            {% block content %}{% endblock %}
+          </td></tr>
+        </table>
+      </div>
+      {% block postscript %}{% endblock %}
+      {% endblock %}
+    </body>
+</html>
