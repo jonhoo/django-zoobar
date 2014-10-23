@@ -13,7 +13,7 @@
 \begin{document}
 \maketitle
 
-\begin{abstract}
+\section{Project motivation}
 The third lab exercise in 6.858 uses the z3 solver to implement concolic
 execution for the Zoobar python application. Unfortunately, the framework used
 for the lab is written specifically for Zoobar, and is unlikely to be directly
@@ -22,7 +22,16 @@ execution could significantly improve a developer's ability to check crucial
 security invariants in their web applications, and so we wish to extend the lab
 3 concolic execution implementation to one that operate on applications that
 are built on top of the popular Django web application framework.
-\end{abstract}
+
+\section{Deliverables}
+\begin{enumerate}
+	\item A rewrite of the Zoobar web application in Django.
+	\item A modified version of Django that supports concolic execution.
+	\item A polished and fleshed-out version of the lab3 concolic execution
+		framework that supports Django web applications out of the box.
+	\item (\textit{Wishlist}) Django ORM support plugin/patch for the
+		Microsoft z3 solver.
+\end{enumerate}
 
 \section{Project stages}
 First, we have to rebuild the Zoobar application functionality using the Django
@@ -44,7 +53,9 @@ z3 to query the database directly for objects satisfying constraints (using
 SQL) rather than relying on the developer enumerating all database records and
 looking them up using native python operations as in Exercise 5. This should
 substantially improve concolic execution time, and will make it much easier to
-use our framework in complex applications.
+use our framework in complex applications. However, given the complexity and
+magnitude of this task, we will only do it if the other components turn out to
+be easier than expected and we are left with spare time.
 
 \section{Challenges}
 \begin{enumerate}
@@ -63,24 +74,15 @@ use our framework in complex applications.
 	\item The complexity of Django, and many applications running atop it,
 		means the state space can grow very large very quickly. It is
 		likely that we will need to find and implement optimizations in
-		the fuzzer that can avoid potentially exponential runtimes.
+		the fuzzer that limit the concolic execution branching factor.
 	\item Extending z3 to have support for database queries directly
 		through the Django ORM requires digging through z3 to figure
-		out how to represent arbitrary conditions as SQL where clauses.
+		out how to translate symbolic conditions into SQL clauses.
 		We will also need to find a way of inferring which symbolic
 		variables in conditions correspond to database objects, and
-		which are plain old variables. Solving this problem is likely
-		going to require deep-seated and non-trivial changes to z3.
-\end{enumerate}
-
-\section{Deliverables}
-\begin{enumerate}
-	\item A rewrite of the Zoobar web application in Django.
-	\item A modified version of Django that supports concolic execution.
-	\item A polished and fleshed-out version of the lab3 concolic execution
-		framework that supports Django web applications out of the box.
-	\item (\textit{Optional}) Django ORM support plugin/patch for the
-		Microsoft z3 solver.
+		which are primitives (strings, ints, etc.). Solving this
+		problem is likely going to require deep-seated and non-trivial
+		changes to z3.
 \end{enumerate}
 
 \end{document}
