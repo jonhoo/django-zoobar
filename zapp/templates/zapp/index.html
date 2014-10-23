@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+{% block title %}Balance{% endblock %}
+{% block content %}
+{% if user.person.zoobars > 0 %}
+<b>Balance:</b> {{ user.person.zoobars }} zoobars<br />
+{% else %}
+<b>Balance:</b> 0 zoobars<br />
+{% endif %}
+{% endblock %}
+{% block postscript %}
+<center>
+<b>Your profile:</b>
+<form method="POST" name="profileform">
+    <textarea name="profile_update" rows="20" cols="80">{{ user.person.profile }}</textarea>
+    <br />
+    <input type="submit" name="profile_submit" value="Save" />
+</form>
+</center>
+{% endblock %}
