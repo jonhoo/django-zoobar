@@ -6,7 +6,7 @@
 \author{Luke Anderson, Jon Gjengset, Jeevana Inala, and Andrew Wang \\
 	\texttt{\{lukea,jfrg,jinala,wangaj\}@mit.edu}
 }
-\title{6.858 project proposal}
+\title{6.858 Project Proposal}
 \subtitle{Concolic Execution for Django Applications}
 \date{\today}
 
@@ -14,14 +14,13 @@
 \maketitle
 
 \section{Project motivation}
-The third lab exercise in 6.858 uses the z3 solver to implement concolic
+Concolic execution systems give developers the power to verify crucial security
+invariants in their applications. The third lab exercise in 6.858 uses the z3 solver to implement concolic
 execution for the Zoobar python application. Unfortunately, the framework used
 for the lab is written specifically for Zoobar, and is unlikely to be directly
-appliacble to other web applications. Having access to the power of concolic
-execution could significantly improve a developer's ability to check crucial
-security invariants in their web applications, and so we wish to extend the lab
-3 concolic execution implementation to one that operate on applications that
-are built on top of the popular Django web application framework.
+compatible with other applications. We therefore wish to extend the lab
+3 concolic execution implementation to one that operates on web applications
+built on top of the popular Django framework.
 
 \section{Deliverables}
 \begin{enumerate}
