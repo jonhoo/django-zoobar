@@ -5,6 +5,8 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 
+from profile import run_profile
+
 @login_required
 def index(request):
     try:
@@ -20,34 +22,42 @@ def transfer(request):
         recipient = request.POST['recipient']
         zoobars = int(request.POST['zoobars'])
 
-        recipientp = User.objects.get(username = recipient)
-
-        sender_balance = request.user.person.zoobars - zoobars
-        recipient_balance = recipientp.person.zoobars + zoobars
-
-        if sender_balance < 0 or recipient_balance < 0:
-            raise ValueError()
-
-        request.user.person.zoobars = sender_balance
-        recipientp.person.zoobars = recipient_balance
-        request.user.person.save()
-        recipientp.person.save()
-
-        transfer = Transfer()
-        transfer.sender = request.user.person
-        transfer.recipient = recipientp.person
-        transfer.amount = zoobars
-        transfer.save()
+        transfer_impl(request.user, recipient, zoobars)
 
         return render(request, 'zapp/transfer.html', {
             'warning': 'Sent %d zoobars' % zoobars
         })
+
     except KeyError:
         return render(request, 'zapp/transfer.html')
     except (User.DoesNotExist, ValueError):
         return render(request, 'zapp/transfer.html', {
             'warning': 'Transfer to %s failed' % request.POST['recipient']
         })
+
+def transfer_impl(sender, recipient, zoobars):
+    try:
+        recipientp = User.objects.get(username = recipient)
+
+        sender_balance = sender.person.zoobars - zoobars
+        recipient_balance = recipientp.person.zoobars + zoobars
+
+        if sender_balance < 0 or recipient_balance < 0:
+            raise ValueError()
+
+        sender.person.zoobars = sender_balance
+        recipientp.person.zoobars = recipient_balance
+        sender.person.save()
+        recipientp.person.save()
+
+        transfer = Transfer()
+        transfer.sender = sender.person
+        transfer.recipient = recipientp.person
+        transfer.amount = zoobars
+        transfer.save()
+    except User.DoesNotExist:
+        raise User.DoesNotExist()
+
 
 @login_required
 def users(request):
@@ -56,7 +66,10 @@ def users(request):
         try:
             user = User.objects.get(username = req_user)
             transfers = Transfer.objects.filter(Q(sender = user) | Q(recipient = user))
-            # TODO: executable profiles?
+
+            if user.person.has_executable_profile():
+                user.person.profile = run_profile(user, req_user)
+
             return render(request, 'zapp/users.html', {
                 'req_user': req_user,
                 'user': user,
@@ -73,3 +86,4 @@ def users(request):
 @login_required
 def zoobarjs(request):
     return render(request, 'zapp/zoobars.js', {'user': request.user})
+

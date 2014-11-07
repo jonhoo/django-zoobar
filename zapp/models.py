@@ -9,6 +9,9 @@ class Person(models.Model):
     def __str__(self):
         return "(User %s, zoobars=%d)" % (self.user.username, self.zoobars)
 
+    def has_executable_profile(self):
+        return self.profile.startswith("#!python")
+
 class Transfer(models.Model):
     sender = models.ForeignKey(Person, related_name='sent_transfers')
     recipient = models.ForeignKey(Person, related_name='received_transfers')
