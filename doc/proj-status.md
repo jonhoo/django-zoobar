@@ -1,27 +1,37 @@
-What we have:
-+ implement zoobar in django.
-+ override portions of django to preserve symbolic strings during url
-and request processing.
-+ perform the same lab3 concolic execution tests on our django-fied zoobar.
+Progress on deliverables:
 
-What we are working on:
-+ symbolic-fy additional operations on ints, strings, and databases
-that django uses.
-+ devise invariants for other django applications and test them on our
-web app concolic execution api.
+  - We have implemented a near-identical version of Zoobar running on Django
+    https://github.com/jonhoo/django-zoobar
+  - We have implemented necessary Django overrides (similar to symflask) to
+    synthesize requests and preserve symbolic strings and ints 
+  - We can perform the same lab3 concolic execution tests on our version of
+    Zoobar running on top of Django, and identify the same bugs as were found
+    in lab3.
 
-=========================
+Next steps:
 
-Below is a summary of what we discussed today. Please let me know if I
-got anything wrong.
+ - Implement symbolic versions of more operations on ints and strings
+ - Expand the set of database queries that can be performed in a symbolic
+   execution friendly manner
+ - Devise invariants for other Django-based applications, and test them using
+   our concolic execution framework.
 
-> clean up and document api for web app concolic execution.
+Ideas for improvements:
 
-> implement all string and int methods.
-> support all (or more) database lookups.
-> optimize the condition generation loop, see klee paper.
-> clarify purpose of built-in symint.
+  - Preventing duplicate executions when different branch conditions yield the
+    same sets of inputs has a potential to decrease the number of iterations in
+    the Zoobar applications threefold.
+  - We want to investigate some of the optimizations used by KLEE to see if
+    that can further reduce the concolic execution time.
+  - Many application bugs are likely to require multiple requests to be
+    performed in order to be exposed. The testing framework currently only
+    executes a single request, which limits the type of bugs it can find.
 
-> find other web apps and state invariants.
-> support multi-request concolic checks.
-> execute full range of zoobar urls.
+Observations about goals:
+
+  - Implementing concolic execution for Django took a long time, even though
+    the resulting mocking code is fairly small. Much of this is due to tracking
+    down where symbolic values are lost.
+  - There seem to be sufficient room for improvement in just running concolic
+    execution on Django that expanding z3 to have native database support may
+    not be worthwhil.
