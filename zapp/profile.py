@@ -6,8 +6,8 @@ import urllib
 import hashlib
 import socket
 import traceback
-import StringIO
-import views
+from io import StringIO
+import zapp.views
 
 ## Cache packages that the sandboxed code might want to import
 import time
@@ -40,7 +40,7 @@ class ProfileAPI():
                 })
 
         except User.DoesNotExist:
-            print "User not found"
+            print("User not found")
 
         return xfers
 
@@ -54,7 +54,7 @@ class ProfileAPI():
                 'zoobars': user.person.zoobars
             }
         except User.DoesNotExist:
-            print "User not found"
+            print("User not found")
 
         return {}
 
@@ -71,11 +71,11 @@ def run_profile(user, visitor):
         stdout = sys.stdout
         result = StringIO.StringIO()
         sys.stdout = result
-        exec pcode in {'api': profile_api_client} 
+        exec(pcode) in {'api': profile_api_client}
         sys.stdout = stdout
         return result.getvalue()
 
-    except Exception, e:
+    except e:
         traceback.print_exc()
         return 'Exception: ' + str(e)
 

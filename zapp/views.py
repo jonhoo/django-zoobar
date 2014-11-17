@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.contrib.auth.decorators import login_required
 
-from profile import run_profile
+from zapp.profile import run_profile
 
 @login_required
 def index(request):
