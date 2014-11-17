@@ -20,7 +20,7 @@ def index(request):
 def transfer(request):
     try:
         recipient = request.POST['recipient']
-        zoobars = int(request.POST['zoobars'])
+        zoobars = symint(request.POST['zoobars'])
 
         transfer_impl(request.user, recipient, zoobars)
 
