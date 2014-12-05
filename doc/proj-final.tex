@@ -150,10 +150,20 @@ both.
 Second, we have modified and expanded the Lab 3 concolic execution framework to
 support Django applications, as well added a testing script for the ported
 version of the Zoobar application. The code for this can be found at
-\url{https://github.com/jonhoo/django-coex}. Note that we did not modify Django
-as a part of this project, something we initially thought we might have to do.
-This was made possibly by the dynamic nature of Python, which allowed us to
-patch running Django code, thus overwriting or bypassing methods that were
-incompatible with concolic execution (see description of some of these in the
-previous section).
+\url{https://github.com/jonhoo/django-coex}. Changes of particular interest are
+the optimizations added to fuzzer.py, the introduction of symex/symdjango.py
+which does all the song and dance necessary to get concolic values into Django
+applications, and symex/symqueryset.py which implementes the database query
+modifications needed for concolic execution as discussed above. It is also
+worth noting that the changes to check-symex-zoobar.py are relatively
+straightforward. The passing of request data has been moved out of symflask
+(where it did not belong as it was application-dependent), and the URLs to test
+has been made explicit, but all the invariant tests are pretty much the same,
+as are the ways of invoking the checker.
+
+Contrary to what we initially thoguht, we did not have to modify Django as a
+part of this project. This was made possibly by the dynamic nature of Python,
+which allowed us to patch running Django code, thus overwriting or bypassing
+methods that were incompatible with concolic execution (see description of some
+of these in the previous section).
 \end{document}
