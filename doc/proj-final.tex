@@ -161,9 +161,61 @@ straightforward. The passing of request data has been moved out of symflask
 has been made explicit, but all the invariant tests are pretty much the same,
 as are the ways of invoking the checker.
 
-Contrary to what we initially thoguht, we did not have to modify Django as a
+Contrary to what we initially thought, we did not have to modify Django as a
 part of this project. This was made possibly by the dynamic nature of Python,
 which allowed us to patch running Django code, thus overwriting or bypassing
 methods that were incompatible with concolic execution (see description of some
 of these in the previous section).
+
+\subsection{Concolic optimizations}
+
+Because our goal is to deploy concolic execution on large, real-world
+Django web applications, we would like the constraint-checking framework
+to be as efficient as possible. To that end, we implemented the
+following optimizations to the Lab 3 framework in fuzzy.py and measured
+their performance.
+
+\begin{itemize}
+\item When a request has been processed through the web app and a path
+condition is obtained, one identifies partial paths that branch off the
+current path and puts them on the queue. In Lab 3, we were branching
+both ``left'' and ``right'' on each element in the path. However, since
+one of these is going to be a partial path of the current one, it adds
+no new information. Not adding that path on the queue reduces the number
+of iterations by half. In Zoobar, we went from 180 to 89 iterations.
+
+\item We noticed that the concolic engine often ran inputs it had
+already tried, even though we already maintain a cache of path
+conditions previously solved. It turns out different path conditions
+may yield the same solution, in which case they should be considered
+equivalent. The solver computation cannot be avoided, but one can
+eliminate processing an identical request in the web app. This further
+reduced Zoobar's iterations from 89 to 81.
+
+\item Lab 3 came with two simple syntactic simplification rules for
+string operations. We extended the list with several more for
+arithmetic. However, no improvements in runtime were discernable.
+A professional solver like Z3 already implements a
+rewriting/simplification preprocessor, so it is likely our list
+duplicates their efforts.
+
+\item The KLEE paper mentions removing redundant constraints from a
+constraint program to reduce the complexity for the solver. Generally,
+when building a list of constraints, if a new constraint implies an
+existing one, or vice versa, then one of them can be eliminated.
+Determining implication between arbitrary constraints could be expensive,
+requiring a solver itself, but syntactic patterns may be sufficient to
+identify a limited set of implications. Detecting implications in Zoobar
+further reduced the number of iterations to 75.
+
+\item A novel feature of KLEE is its use of the counter-example cache
+that records previous solutions or no-goods, to be used as a heuristic
+on future iterations. The cache does not eliminate any iterations, but
+the runtime benefit of finding a solution in the cache may outweigh the
+cost of looking up the cache and having to run the solver anyway.
+The cache is implemented as a UBtree by [Hoffmann and Koehler],
+which allows efficient subset and superset queries. On Zoobar, out of
+the 75 iterations, 28 employed the counter-example cache successfully.
+\end{itemize}
+
 \end{document}
