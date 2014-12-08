@@ -58,40 +58,21 @@ ones, and how we decided to tackle them:
 		that the developers enumerates all views they want to exercise,
 		but it is significantly easier and less error-prone to
 		implement than any kind of dynamic discovery scheme.
-	\item Finding a good way of exposing decisions made inside the database
-		to the concolic execution framework was difficult. While the
-		approach taken in Lab 3 where we enumerate all entries in a
-		table and force a branch on every row from the table does
-		ensure that all application branches are tested, it is also
-		prohibitively expensive for applications that may have large
-		datasets already present in their databases. Furthermore, it is
-		wasteful, as most rows are likely to not yield different
-		application behaviour, and thus unnecessarily increase the
-		search space. Furthermore, all database operations would need
-		to be reimplemented for this technique to correctly preserve
-		concolic values for all possible Database lookups.
 
-		Instead, we opted for using a faster, but also weaker approach
-		by default, with the option to fall back to the exhaustive Lab
-		3 technique. Whenever a query to the database is constructed
-		where one of the conditions uses a concolic value, we construct
-		an artificial branch in which the database condition is
-		negated. This will force the concolic execution framework to
-		try at least two different results for that query, potentially
-		finding more application branches. Obviously, this approach
-		will potentially miss branches, particularly if only a few rows
-		in a database have a set of values that would reach some
-		branch, but it is also significantly faster for applications
-		with large datasets.
+	\item Finding a good way of exposing to the concolic execution framework
+    decisions made inside the database proved challenging. We implemented 3
+    approaches, described below, each with tradeoffs. In general, it seems
+    that higher code coverage typically comes at the cost of efficiency, and an
+    ideal solution may be a hybrid approach that can detect situations in which
+    one algorithm is more effective than the others and adapt accordingly. 
 
 		We have some ideas about how this search might be improved by
 		specifically looking for other rows that do not match the given
 		condition, and where other database values are different, but
 		did not have time to implement these by the project deadline.
 		Instead, we leave these improvements as future work. In the
-		meantime, we suggest developers test their application with a
-		test database with exhaustive search, as well as with a copy of
-		the full database using the reduced search.
+		meantime, developers can select an approach of their choosing, or use all 3
+    for more exhaustive testing.
 	
 	\item Django, and applications written atop it, use a significant
 		subset of the operations and types provided by the Python
@@ -232,6 +213,20 @@ setting. An overview of our approaches:
   covered.
 
 \item \underline{Mutation:}
+
+We implemented a mutation approach based on ConSMutate (Sarkar, et.\ al. 2012).
+The goal is to catch typical programmer errors, e.g.\ writing a database
+query with $\textit{zoobars} > 10$ instead of \textit{zoobars }$ \geq 10$.
+
+Whenever the database is queried, we extract the WHERE clause and create mutated
+variants by changing the relational operator. We run each mutation and compare
+its result with that of the original. If the results are the same, we do
+nothing. If they are different, we add the symmetric difference of the two
+conditions as a new path constraint: hopefully this new constraint will
+lead to a concrete value that distinguishes the two conditions, and explores an
+untouched branch of the code.
+
+This approach has lower coverage but can potentially catch common errors.
 
 \item \underline{SQL:} Consider the following pseudocode:
 
