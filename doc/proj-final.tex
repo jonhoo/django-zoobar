@@ -212,4 +212,70 @@ which allows efficient subset and superset queries. On Zoobar, the
 counter-example cache was successfully employed 28 times.
 \end{itemize}
 
+\subsection{Handling the Database}
+
+We implemented 3 different approaches for accessing the database in a
+concolic-compatible way. Each approach offers both positives and negatives, and it
+seems unlikely that any solution will be superior than all others in the general
+setting. An overview of our approaches:
+
+\begin{enumerate}
+\item \underline{All:} As in lab3, whenever we want to look up a value
+  in the database, we first fetch every object, then compare each turn to the
+  desired lookup key. We extend lab3's implementation to support multiple key
+  lookups, and lookups across related tables. 
+
+  This approach has the benefit that it is relatively simple, and generally
+  provides good coverage. The drawbacks are that it has the potential to re-test
+  the same branches of the programs, which is wasteful. Further, there are
+  situations (described below in \underline{SQL}) where branches will not be
+  covered.
+
+\item \underline{Mutation:}
+
+\item \underline{SQL:} Consider the following pseudocode:
+
+\begin{verbatim}
+user = User.objects.get(username='bob')
+if user.person.zoobars > 5:
+  # do something
+else:
+  # do something else
+\end{verbatim}
+
+There are two issues here. First, once loaded from the database, the properties
+of the \textit{user} object, e.g.\ \textit{user.person.zoobars} will not have
+concolic values, so the if statement will simply compare 2
+plain integers. In order to test both branches, we have to hope that
+in one iteration \textit{user} has more than 5 zoobars, and in another less than
+or equal to 5. There are no guarantees this will happen. Second, it may be the
+case that the database does not have a user with more than 5 zoobars and another
+with less than or equal to 5, in which case we have no
+hope of covering both branches, even by enumerating all rows, as in
+\underline{All}.
+
+We attempt to solve these issues in two ways:
+\begin{enumerate}
+  \item Create new concolic values for each database object's properties. When
+    \textit{user} is created above, we create a new concolic int for
+    \textit{user.person.zoobars}. The if statement will then generate a
+    new constraint, as desired, and z3 can then produce a concrete value for us
+    to test. Each concolic value in the system requires a unique ID, typically
+    selected by the user. In this case, we create them automatically using a
+    hash of the
+    stack trace of the query as its unique identifier.
+  \item Automatically create new database entries for concrete values that are
+    not present. When z3 generates a new value for \textit{user.person.zoobars},
+    say 0, it is possible that there is no user in the database with that value.
+    So we create a new entry with this and any other concrete values.
+\end{enumerate}
+
+
+Testing showed that this approach provides slightly better coverage than enumerating all possible
+rows, while also requiring slightly fewer iterations, making it a promising
+solution. The downside is that it makes it more difficult to write program
+invariants, which typically rely on the database remaining unchanged.
+
+\end{enumerate}
+
 \end{document}
