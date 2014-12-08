@@ -148,6 +148,7 @@ which allowed us to patch running Django code, thus overwriting or bypassing
 methods that were incompatible with concolic execution (see description of some
 of these in the previous section).
 
+In addition to zoobar, we also ran our concolic execution system on 'gradapply' which is a real and a much complex website than zoobar. Initially, we were facing challenges with Django version; we developed the concolic execution system for Django-1.8, but gradapply was written in Django-1.6. Thus, we first extended our system to also support Django-1.6. Then, it was straight-forward to extend the checking script for gradapply. We are currently checking for 6 different paths and it takes 77 iterations to complete. Though, we did not aim to write invariants for this website and find real bugs, it is certainly possible to do so.
 \subsection{Concolic optimizations}
 
 Because our goal is to deploy concolic execution on large, real-world
