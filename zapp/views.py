@@ -7,6 +7,11 @@ from django.contrib.auth.decorators import login_required
 
 from zapp.profile import run_profile
 
+import __builtin__
+if "symint" not in dir(__builtin__):
+    def symint(v):
+        return int(v)
+
 @login_required
 def index(request):
     try:
