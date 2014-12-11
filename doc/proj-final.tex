@@ -13,7 +13,7 @@
 \begin{document}
 \maketitle
 
-\section{Project background}
+\section{Motivation}
 Concolic execution systems give developers the power to verify crucial security
 invariants in their applications. The third lab exercise in 6.858 uses the z3
 solver to implement concolic execution for the Zoobar python application.
@@ -25,6 +25,45 @@ This required finding ways of preserving concolic execution information during
 the execution of internal framework code in Django, as well as developing
 necessary optimizations to deal with the additional complexity provided by the
 many features Django has to offer.
+
+\section{Summary of results}
+Over the course of the project, we have produced two codebases of interest.
+First, we have ported the Stanford Zoobar application to Django. The code for
+this can be found at \url{https://github.com/jonhoo/django-zoobar}. We have
+intentionally attempted to preserve the application structure and code from the
+original codebase as far as possible, both to make comparisons with the
+original easier, as well as to ensure that the same set of bugs can be found in
+both.
+
+Second, we have modified and expanded the Lab 3 concolic execution framework to
+support Django applications, as well added a testing script for the ported
+version of the Zoobar application. The code for this can be found at
+\url{https://github.com/jonhoo/django-coex}. Changes of particular interest are
+the optimizations added to fuzzer.py, the introduction of symex/symdjango.py
+which does all the song and dance necessary to get concolic values into Django
+applications, and symex/symqueryset.py which implementes the database query
+modifications needed for concolic execution as discussed above. It is also
+worth noting that the changes to check-symex-zoobar.py are relatively
+straightforward. The passing of request data has been moved out of symflask
+(where it did not belong as it was application-dependent), and the URLs to test
+has been made explicit, but all the invariant tests are pretty much the same,
+as are the ways of invoking the checker.
+
+Contrary to what we initially thought, we did not have to modify Django as a
+part of this project. This was made possibly by the dynamic nature of Python,
+which allowed us to patch running Django code, thus overwriting or bypassing
+methods that were incompatible with concolic execution (see description of some
+of these in the previous section).
+
+In addition to zoobar, we also ran our concolic execution system on
+'gradapply' which is a real and a much complex website than zoobar.
+Initially, we were facing challenges with Django version; we developed
+the concolic execution system for Django-1.8, but gradapply was written
+in Django-1.6. Thus, we first extended our system to also support
+Django-1.6. Then, it was straight-forward to extend the checking script
+for gradapply. We are currently checking for 6 different paths and it takes
+77 iterations to complete. Though, we did not aim to write invariants for
+this website and find real bugs, it is certainly possible to do so.
 
 \section{Challenges}
 Over the course of developing this framework, we came across a number of
@@ -64,7 +103,7 @@ ones, and how we decided to tackle them:
     approaches, described below, each with tradeoffs. In general, it seems
     that higher code coverage typically comes at the cost of efficiency, and an
     ideal solution may be a hybrid approach that can detect situations in which
-    one algorithm is more effective than the others and adapt accordingly. 
+    one algorithm is more effective than the others and adapt accordingly.
 
 		We have some ideas about how this search might be improved by
 		specifically looking for other rows that do not match the given
@@ -73,7 +112,7 @@ ones, and how we decided to tackle them:
 		Instead, we leave these improvements as future work. In the
 		meantime, developers can select an approach of their choosing, or use all 3
     for more exhaustive testing.
-	
+
 	\item Django, and applications written atop it, use a significant
 		subset of the operations and types provided by the Python
 		language. The concolic execution framework only supports a
@@ -89,7 +128,7 @@ ones, and how we decided to tackle them:
 		Django codebase where concolic values would be lost, and
 		testing the framework on a more diverse set of applications
 		would be necessary to expose all of the corner-cases.
-	
+
 	\item Web applications receive input from a number of sources; in-URL
 		parameters, GET parameters, POST form parameters, file uploads,
 		environment variables, and cookies just to name a few.
@@ -106,7 +145,7 @@ ones, and how we decided to tackle them:
 		include finding better ways of determining view inputs, or at
 		the very least, simplifying the developer's job of telling the
 		framework about the format of these inputs.
-	
+
 	\item The framework from Lab 3 only tests invariants across single
 		requests. Realistically however, a sequence of requests may be
 		required for a particular bug to be exposed. We thus had to add
@@ -119,38 +158,9 @@ ones, and how we decided to tackle them:
 		to test or optimize this feature for any of our applications.
 \end{enumerate}
 
-\section{Results}
-Over the course of the project, we have produced two codebases of interest.
-First, we have ported the Stanford Zoobar application to Django. The code for
-this can be found at \url{https://github.com/jonhoo/django-zoobar}. We have
-intentionally attempted to preserve the application structure and code from the
-original codebase as far as possible, both to make comparisons with the
-original easier, as well as to ensure that the same set of bugs can be found in
-both.
+\section{Project details}
 
-Second, we have modified and expanded the Lab 3 concolic execution framework to
-support Django applications, as well added a testing script for the ported
-version of the Zoobar application. The code for this can be found at
-\url{https://github.com/jonhoo/django-coex}. Changes of particular interest are
-the optimizations added to fuzzer.py, the introduction of symex/symdjango.py
-which does all the song and dance necessary to get concolic values into Django
-applications, and symex/symqueryset.py which implementes the database query
-modifications needed for concolic execution as discussed above. It is also
-worth noting that the changes to check-symex-zoobar.py are relatively
-straightforward. The passing of request data has been moved out of symflask
-(where it did not belong as it was application-dependent), and the URLs to test
-has been made explicit, but all the invariant tests are pretty much the same,
-as are the ways of invoking the checker.
-
-Contrary to what we initially thought, we did not have to modify Django as a
-part of this project. This was made possibly by the dynamic nature of Python,
-which allowed us to patch running Django code, thus overwriting or bypassing
-methods that were incompatible with concolic execution (see description of some
-of these in the previous section).
-
-In addition to zoobar, we also ran our concolic execution system on 'gradapply' which is a real and a much complex website than zoobar. Initially, we were facing challenges with Django version; we developed the concolic execution system for Django-1.8, but gradapply was written in Django-1.6. Thus, we first extended our system to also support Django-1.6. Then, it was straight-forward to extend the checking script for gradapply. We are currently checking for 6 different paths and it takes 77 iterations to complete. Though, we did not aim to write invariants for this website and find real bugs, it is certainly possible to do so.
 \subsection{Concolic optimizations}
-
 Because our goal is to deploy concolic execution on large, real-world
 Django web applications, we would like the constraint-checking framework
 to be as efficient as possible. To that end, we implemented the
@@ -195,7 +205,6 @@ counter-example cache was successfully employed 28 times.
 \end{itemize}
 
 \subsection{Handling the Database}
-
 We implemented 3 different approaches for accessing the database in a
 concolic-compatible way. Each approach offers both positives and negatives, and it
 seems unlikely that any solution will be superior than all others in the general
@@ -205,7 +214,7 @@ setting. An overview of our approaches:
 \item \underline{All:} As in lab3, whenever we want to look up a value
   in the database, we first fetch every object, then compare each turn to the
   desired lookup key. We extend lab3's implementation to support multiple key
-  lookups, and lookups across related tables. 
+  lookups, and lookups across related tables.
 
   This approach has the benefit that it is relatively simple, and generally
   provides good coverage. The drawbacks are that it has the potential to re-test
