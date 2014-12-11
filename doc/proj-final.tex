@@ -43,27 +43,36 @@ the same bugs are found in our version. To that end, we have attempted
 to preserve the original application structure and code as much as
 possible.
 
-The second repository contains out modifications to the Lab 3 concolic
+The second repository contains modifications to the Lab 3 concolic
 execution framework to support Django applications, as well as a
 testing script for the ported zoobar application.
 
 
+%% Outline
+% preserve concolic values
+% in url matching
+% in database queries
+% in Django internals
+% from multiple input sources
+% across multiple requests
+
+% optimize concolic execution
+
+% demonstrate concolic execution system on another Django application
+
 Changes of particular interest are
-the optimizations added to fuzzer.py, the introduction of symex/symdjango.py
-which does all the song and dance necessary to get concolic values into Django
-applications, and symex/symqueryset.py which implementes the database query
-modifications needed for concolic execution as discussed above. It is also
+the introduction of symex/symdjango.py which does all the song and 
+  dance necessary to get concolic values into Django applications,
+and symex/symqueryset.py which implementes the database query
+  modifications needed for concolic execution as discussed above.
+the optimizations added to fuzzer.py,
+
+It is also
 worth noting that the changes to check-symex-zoobar.py are relatively
 straightforward. The passing of request data has been moved out of symflask
 (where it did not belong as it was application-dependent), and the URLs to test
 has been made explicit, but all the invariant tests are pretty much the same,
 as are the ways of invoking the checker.
-
-Contrary to what we initially thought, we did not have to modify Django as a
-part of this project. This was made possibly by the dynamic nature of Python,
-which allowed us to patch running Django code, thus overwriting or bypassing
-methods that were incompatible with concolic execution (see description of some
-of these in the previous section).
 
 In addition to zoobar, we also ran our concolic execution system on
 'gradapply' which is a real and a much complex website than zoobar.
@@ -74,6 +83,12 @@ Django-1.6. Then, it was straight-forward to extend the checking script
 for gradapply. We are currently checking for 6 different paths and it takes
 77 iterations to complete. Though, we did not aim to write invariants for
 this website and find real bugs, it is certainly possible to do so.
+
+Contrary to what we initially thought, we did not have to modify
+Django as part of this project. This was made possible by the dynamic
+nature of Python, which allowed us to patch running Django code, thus
+overwriting or bypassing methods that were incompatible with concolic
+execution.
 
 
 \section{Challenges}
@@ -179,50 +194,6 @@ ones, and how we decided to tackle them:
 
 \section{Implementation details}
 
-\subsection{Concolic optimizations}
-Because our goal is to deploy concolic execution on large, real-world
-Django web applications, we would like the constraint-checking framework
-to be as efficient as possible. To that end, we implemented the
-following optimizations to the Lab 3 framework in fuzzy.py and measured
-their performance.
-
-\begin{itemize}
-\item When a request has been processed through the web app and a path
-  condition is obtained, one identifies partial paths that branch off the
-  current path and puts them on the queue. In Lab 3, we were branching
-  both ``left'' and ``right'' on each element in the path. However, since
-  one of these is going to be a partial path of the current one, it adds
-  no new information. Not adding that path on the queue reduces the number
-  of iterations by half. In Zoobar, we went from 181 to 89 iterations.
-
-\item We noticed that the concolic engine often ran inputs it had
-  already tried, even though we already maintain a cache of path
-  conditions previously solved. It turns out different path conditions
-  may yield the same solution, in which case they should be considered
-  equivalent. The solver computation cannot be avoided, but one can
-  eliminate processing an identical request in the web app. This further
-  reduced Zoobar's iterations from 89 to 81.
-
-\item The KLEE paper mentions removing redundant constraints from a
-  constraint program to reduce the complexity for the solver. If a new
-  constraint implies an existing one, or vice versa, then the constraint
-  that is implied can be eliminated.
-  Determining implication in the general case is expensive, requiring a
-  solver. To avoid the cost of running Z3, we checked pairs of constraints
-  against several patterns of string constraints where one is known to
-  imply the other. We were able to detect all implications in Zoobar that
-  Z3 would have, and further reduced the number of iterations to 75.
-
-\item A novel feature of KLEE is its use of the counter-example cache
-  that records previous solutions or no-goods, to be used as a heuristic
-  on future iterations. The cache does not eliminate any iterations, but
-  the runtime benefit of finding a solution in the cache may outweigh the
-  cost of looking up the cache and having to run the solver anyway.
-  The cache is implemented as a UBtree by [Hoffmann and Koehler],
-  which allows efficient subset and superset queries. On Zoobar, the
-  counter-example cache was successfully employed 28 times.
-\end{itemize}
-
 \subsection{Handling the Database}
 We implemented 3 different approaches for accessing the database in a
 concolic-compatible way. Each approach offers both positives and
@@ -302,5 +273,49 @@ than all others in the general setting. An overview of our approaches:
   that it makes it more difficult to write program invariants, which
   typically rely on the database remaining unchanged.
 \end{enumerate}
+
+\subsection{Concolic optimizations}
+Because our goal is to deploy concolic execution on large, real-world
+Django web applications, we would like the constraint-checking framework
+to be as efficient as possible. To that end, we implemented the
+following optimizations to the Lab 3 framework in fuzzy.py and measured
+their performance.
+
+\begin{itemize}
+\item When a request has been processed through the web app and a path
+  condition is obtained, one identifies partial paths that branch off the
+  current path and puts them on the queue. In Lab 3, we were branching
+  both ``left'' and ``right'' on each element in the path. However, since
+  one of these is going to be a partial path of the current one, it adds
+  no new information. Not adding that path on the queue reduces the number
+  of iterations by half. In Zoobar, we went from 181 to 89 iterations.
+
+\item We noticed that the concolic engine often ran inputs it had
+  already tried, even though we already maintain a cache of path
+  conditions previously solved. It turns out different path conditions
+  may yield the same solution, in which case they should be considered
+  equivalent. The solver computation cannot be avoided, but one can
+  eliminate processing an identical request in the web app. This further
+  reduced Zoobar's iterations from 89 to 81.
+
+\item The KLEE paper mentions removing redundant constraints from a
+  constraint program to reduce the complexity for the solver. If a new
+  constraint implies an existing one, or vice versa, then the constraint
+  that is implied can be eliminated.
+  Determining implication in the general case is expensive, requiring a
+  solver. To avoid the cost of running Z3, we checked pairs of constraints
+  against several patterns of string constraints where one is known to
+  imply the other. We were able to detect all implications in Zoobar that
+  Z3 would have, and further reduced the number of iterations to 75.
+
+\item A novel feature of KLEE is its use of the counter-example cache
+  that records previous solutions or no-goods, to be used as a heuristic
+  on future iterations. The cache does not eliminate any iterations, but
+  the runtime benefit of finding a solution in the cache may outweigh the
+  cost of looking up the cache and having to run the solver anyway.
+  The cache is implemented as a UBtree by [Hoffmann and Koehler],
+  which allows efficient subset and superset queries. On Zoobar, the
+  counter-example cache was successfully employed 28 times.
+\end{itemize}
 
 \end{document}
