@@ -14,7 +14,9 @@ Luke Anderson, Jon Gjengset, Jeevana Inala, and Andrew Wang \\
 \begin{document}
 \maketitle
 
+
 \section{Motivation}
+
 Concolic execution systems allow developers to verify security
 invariants in their applications. This was demonstrated in Lab 3, where
 the Z3 solver was used to find inputs that would trigger inconsistencies
@@ -26,6 +28,7 @@ of the popular Django framework.
 
 
 \section{Summary of results}
+
 This required finding ways of preserving concolic execution information during
 the execution of internal framework code in Django, as well as developing
 necessary optimizations to deal with the additional complexity provided by the
@@ -69,101 +72,104 @@ for gradapply. We are currently checking for 6 different paths and it takes
 77 iterations to complete. Though, we did not aim to write invariants for
 this website and find real bugs, it is certainly possible to do so.
 
+
 \section{Challenges}
+
 Over the course of developing this framework, we came across a number of
 challenges; both anticipated and unexpected. We list here the more important
 ones, and how we decided to tackle them:
 
 \begin{enumerate}
 \item URL parsing in Django is based on nested regular expressions that
-are used both to determine which application method (``view''
-in Django terminology) should be invoked, and to do reverse URL
-lookups. These patterns can get very complex, and often involve
-dynamic parameters that may be passed as input to the
-application. Unfortunately, regular expressions are not
-supported by z3 (and support for them would probably prove
-difficule to add), so we needed to come up with a different
-scheme for making the choice of view, as well as parameters
-passed to the view, concolic.
+  are used both to determine which application method (``view''
+  in Django terminology) should be invoked, and to do reverse URL
+  lookups. These patterns can get very complex, and often involve
+  dynamic parameters that may be passed as input to the
+  application. Unfortunately, regular expressions are not
+  supported by z3 (and support for them would probably prove
+  difficule to add), so we needed to come up with a different
+  scheme for making the choice of view, as well as parameters
+  passed to the view, concolic.
 
-There are many ways we could have chosen to approach this
-problem. One that is fairly straightforward is to dynamically
-resolve the list of all views in an application, and call them
-directly, ignoring URLs altogether.  The downside of this
-approach is that this would bypass all of Django's middleware
-modules (handlers that the request is passed through before it
-is passed to the appropriate view), which many applications
-rely heavily on for features such as session management and
-CSRF protection.
+  There are many ways we could have chosen to approach this
+  problem. One that is fairly straightforward is to dynamically
+  resolve the list of all views in an application, and call them
+  directly, ignoring URLs altogether.  The downside of this
+  approach is that this would bypass all of Django's middleware
+  modules (handlers that the request is passed through before it
+  is passed to the appropriate view), which many applications
+  rely heavily on for features such as session management and
+  CSRF protection.
 
-Instead, we chose to have the developer explicitly specify
-which URLs map to which views, along with a Python dictionary
-of named parameters. This is not very elegant, and requires
-that the developers enumerates all views they want to exercise,
-but it is significantly easier and less error-prone to
-implement than any kind of dynamic discovery scheme.
+  Instead, we chose to have the developer explicitly specify
+  which URLs map to which views, along with a Python dictionary
+  of named parameters. This is not very elegant, and requires
+  that the developers enumerates all views they want to exercise,
+  but it is significantly easier and less error-prone to
+  implement than any kind of dynamic discovery scheme.
 
 \item Finding a good way of exposing to the concolic execution framework
-decisions made inside the database proved challenging. We implemented 3
-approaches, described below, each with tradeoffs. In general, it seems
-that higher code coverage typically comes at the cost of efficiency, and an
-ideal solution may be a hybrid approach that can detect situations in which
-one algorithm is more effective than the others and adapt accordingly.
+  decisions made inside the database proved challenging. We implemented 3
+  approaches, described below, each with tradeoffs. In general, it seems
+  that higher code coverage typically comes at the cost of efficiency, and an
+  ideal solution may be a hybrid approach that can detect situations in which
+  one algorithm is more effective than the others and adapt accordingly.
 
-We have some ideas about how this search might be improved by
-specifically looking for other rows that do not match the given
-condition, and where other database values are different, but
-did not have time to implement these by the project deadline.
-Instead, we leave these improvements as future work. In the
-meantime, developers can select an approach of their choosing, or use all 3
-for more exhaustive testing.
+  We have some ideas about how this search might be improved by
+  specifically looking for other rows that do not match the given
+  condition, and where other database values are different, but
+  did not have time to implement these by the project deadline.
+  Instead, we leave these improvements as future work. In the
+  meantime, developers can select an approach of their choosing, or use all 3
+  for more exhaustive testing.
 
 \item Django, and applications written atop it, use a significant
-subset of the operations and types provided by the Python
-language. The concolic execution framework only supports a
-subset of these (regular expressions and floating point numbers
-are noteworthy examples), and thus the concolic nature of
-values can easily get lost for today's complex web
-applications. We spent considerable time determining exactly
-which part of the Django codebase was using unsupported
-operations (e.g. URL resolution), and coming up with ways of
-circumventing those operations. Many of these were deeply
-integrated into the Django codebase, such as the parsing of
-POST form data and URLs. There are likely still parts of the
-Django codebase where concolic values would be lost, and
-testing the framework on a more diverse set of applications
-would be necessary to expose all of the corner-cases.
+  subset of the operations and types provided by the Python
+  language. The concolic execution framework only supports a
+  subset of these (regular expressions and floating point numbers
+  are noteworthy examples), and thus the concolic nature of
+  values can easily get lost for today's complex web
+  applications. We spent considerable time determining exactly
+  which part of the Django codebase was using unsupported
+  operations (e.g. URL resolution), and coming up with ways of
+  circumventing those operations. Many of these were deeply
+  integrated into the Django codebase, such as the parsing of
+  POST form data and URLs. There are likely still parts of the
+  Django codebase where concolic values would be lost, and
+  testing the framework on a more diverse set of applications
+  would be necessary to expose all of the corner-cases.
 
 \item Web applications receive input from a number of sources; in-URL
-parameters, GET parameters, POST form parameters, file uploads,
-environment variables, and cookies just to name a few.
-Furthermore, there is no straightforward way of determining
-which of these a given application view uses, an in particular,
-which values it cares about. We have taken the approach of
-requiring the developer to explicitly construct the datasets
-(with concolic values where appropriate) to give to
-applications, and to pass these datasets in whenever a URL
-points to a relevant view. While this is inconvenient (the
-developer has to know and enumerate what data can be passed to
-every view of interest), it was the only feasible way we could
-imagine doing it in the available timeframe. Future work should
-include finding better ways of determining view inputs, or at
-the very least, simplifying the developer's job of telling the
-framework about the format of these inputs.
+  parameters, GET parameters, POST form parameters, file uploads,
+  environment variables, and cookies just to name a few.
+  Furthermore, there is no straightforward way of determining
+  which of these a given application view uses, an in particular,
+  which values it cares about. We have taken the approach of
+  requiring the developer to explicitly construct the datasets
+  (with concolic values where appropriate) to give to
+  applications, and to pass these datasets in whenever a URL
+  points to a relevant view. While this is inconvenient (the
+  developer has to know and enumerate what data can be passed to
+  every view of interest), it was the only feasible way we could
+  imagine doing it in the available timeframe. Future work should
+  include finding better ways of determining view inputs, or at
+  the very least, simplifying the developer's job of telling the
+  framework about the format of these inputs.
 
 \item The framework from Lab 3 only tests invariants across single
-requests. Realistically however, a sequence of requests may be
-required for a particular bug to be exposed. We thus had to add
-support for running multiple requests one after another, while
-considering the entire sequence of requests a single execution.
-This is primarily hard because of the exponential growth of the
-search space, as the number of branches for each request are
-multiplied together. We chose to add this feature to the
-framework for the sake of completeness, but have not had time
-to test or optimize this feature for any of our applications.
+  requests. Realistically however, a sequence of requests may be
+  required for a particular bug to be exposed. We thus had to add
+  support for running multiple requests one after another, while
+  considering the entire sequence of requests a single execution.
+  This is primarily hard because of the exponential growth of the
+  search space, as the number of branches for each request are
+  multiplied together. We chose to add this feature to the
+  framework for the sake of completeness, but have not had time
+  to test or optimize this feature for any of our applications.
 \end{enumerate}
 
-\section{Project details}
+
+\section{Implementation details}
 
 \subsection{Concolic optimizations}
 Because our goal is to deploy concolic execution on large, real-world
@@ -174,117 +180,119 @@ their performance.
 
 \begin{itemize}
 \item When a request has been processed through the web app and a path
-condition is obtained, one identifies partial paths that branch off the
-current path and puts them on the queue. In Lab 3, we were branching
-both ``left'' and ``right'' on each element in the path. However, since
-one of these is going to be a partial path of the current one, it adds
-no new information. Not adding that path on the queue reduces the number
-of iterations by half. In Zoobar, we went from 181 to 89 iterations.
+  condition is obtained, one identifies partial paths that branch off the
+  current path and puts them on the queue. In Lab 3, we were branching
+  both ``left'' and ``right'' on each element in the path. However, since
+  one of these is going to be a partial path of the current one, it adds
+  no new information. Not adding that path on the queue reduces the number
+  of iterations by half. In Zoobar, we went from 181 to 89 iterations.
 
 \item We noticed that the concolic engine often ran inputs it had
-already tried, even though we already maintain a cache of path
-conditions previously solved. It turns out different path conditions
-may yield the same solution, in which case they should be considered
-equivalent. The solver computation cannot be avoided, but one can
-eliminate processing an identical request in the web app. This further
-reduced Zoobar's iterations from 89 to 81.
+  already tried, even though we already maintain a cache of path
+  conditions previously solved. It turns out different path conditions
+  may yield the same solution, in which case they should be considered
+  equivalent. The solver computation cannot be avoided, but one can
+  eliminate processing an identical request in the web app. This further
+  reduced Zoobar's iterations from 89 to 81.
 
 \item The KLEE paper mentions removing redundant constraints from a
-constraint program to reduce the complexity for the solver. If a new
-constraint implies an existing one, or vice versa, then the constraint
-that is implied can be eliminated.
-Determining implication in the general case is expensive, requiring a
-solver. To avoid the cost of running Z3, we checked pairs of constraints
-against several patterns of string constraints where one is known to
-imply the other. We were able to detect all implications in Zoobar that
-Z3 would have, and further reduced the number of iterations to 75.
+  constraint program to reduce the complexity for the solver. If a new
+  constraint implies an existing one, or vice versa, then the constraint
+  that is implied can be eliminated.
+  Determining implication in the general case is expensive, requiring a
+  solver. To avoid the cost of running Z3, we checked pairs of constraints
+  against several patterns of string constraints where one is known to
+  imply the other. We were able to detect all implications in Zoobar that
+  Z3 would have, and further reduced the number of iterations to 75.
 
 \item A novel feature of KLEE is its use of the counter-example cache
-that records previous solutions or no-goods, to be used as a heuristic
-on future iterations. The cache does not eliminate any iterations, but
-the runtime benefit of finding a solution in the cache may outweigh the
-cost of looking up the cache and having to run the solver anyway.
-The cache is implemented as a UBtree by [Hoffmann and Koehler],
-which allows efficient subset and superset queries. On Zoobar, the
-counter-example cache was successfully employed 28 times.
+  that records previous solutions or no-goods, to be used as a heuristic
+  on future iterations. The cache does not eliminate any iterations, but
+  the runtime benefit of finding a solution in the cache may outweigh the
+  cost of looking up the cache and having to run the solver anyway.
+  The cache is implemented as a UBtree by [Hoffmann and Koehler],
+  which allows efficient subset and superset queries. On Zoobar, the
+  counter-example cache was successfully employed 28 times.
 \end{itemize}
 
 \subsection{Handling the Database}
 We implemented 3 different approaches for accessing the database in a
-concolic-compatible way. Each approach offers both positives and negatives, and it
-seems unlikely that any solution will be superior than all others in the general
-setting. An overview of our approaches:
+concolic-compatible way. Each approach offers both positives and
+negatives, and it seems unlikely that any solution will be superior
+than all others in the general setting. An overview of our approaches:
 
 \begin{enumerate}
-\item \underline{All:} As in lab3, whenever we want to look up a value
-in the database, we first fetch every object, then compare each turn to the
-desired lookup key. We extend lab3's implementation to support multiple key
-lookups, and lookups across related tables.
+\item \underline{All:}
+  As in lab3, whenever we want to look up a value
+  in the database, we first fetch every object, then compare each turn to the
+  desired lookup key. We extend lab3's implementation to support multiple key
+  lookups, and lookups across related tables.
 
-This approach has the benefit that it is relatively simple, and generally
-provides good coverage. The drawbacks are that it has the potential to re-test
-the same branches of the programs, which is wasteful. Further, there are
-situations (described below in \underline{SQL}) where branches will not be
-covered.
+  This approach has the benefit that it is relatively simple, and generally
+  provides good coverage. The drawbacks are that it has the potential to re-test
+  the same branches of the programs, which is wasteful. Further, there are
+  situations (described below in \underline{SQL}) where branches will not be
+  covered.
 
 \item \underline{Mutation:}
-We implemented a mutation approach based on ConSMutate (Sarkar, et.\ al. 2012).
-The goal is to catch typical programmer errors, e.g.\ writing a database
-query with $\textit{zoobars} > 10$ instead of \textit{zoobars }$ \geq 10$.
+  We implemented a mutation approach based on
+  ConSMutate~(Sarkar, et.\ al. 2012). The goal is to catch typical
+  programmer errors, e.g.\ writing a database query with
+  $\textit{zoobars} > 10$ instead of \textit{zoobars }$ \geq 10$.
 
-Whenever the database is queried, we extract the WHERE clause and create mutated
-variants by changing the relational operator. We run each mutation and compare
-its result with that of the original. If the results are the same, we do
-nothing. If they are different, we add the symmetric difference of the two
-conditions as a new path constraint: hopefully this new constraint will
-lead to a concrete value that distinguishes the two conditions, and explores an
-untouched branch of the code.
+  Whenever the database is queried, we extract the WHERE clause and
+  create mutated variants by changing the relational operator. We run
+  each mutation and compare its result with that of the original. If
+  the results are the same, we do nothing. If they are different, we
+  add the symmetric difference of the two conditions as a new path
+  constraint: hopefully this new constraint will lead to a concrete
+  value that distinguishes the two conditions, and explores an
+  untouched branch of the code.
 
-This approach has lower coverage but can potentially catch common errors.
+  This approach has lower coverage but can potentially catch common errors.
 
-\item \underline{SQL:} Consider the following pseudocode:
+\item \underline{SQL:}
+  Consider the following pseudocode:
+  \begin{verbatim}
+  user = User.objects.get(username='bob')
+  if user.person.zoobars > 5:
+    # do something
+  else:
+    # do something else
+  \end{verbatim}
 
-\begin{verbatim}
-user = User.objects.get(username='bob')
-if user.person.zoobars > 5:
-  # do something
-else:
-  # do something else
-\end{verbatim}
+  There are two issues here. First, once loaded from the database, the
+  properties of the \textit{user} object, e.g.\ \textit{user.person.zoobars}
+  will not have concolic values, so the if statement will simply compare
+  two plain integers. In order to test both branches, we have to hope that
+  in one iteration \textit{user} has more than 5 zoobars, and in another
+  less than or equal to 5. There are no guarantees this will happen.
+  Second, it may be the case that the database does not have a user
+  with more than 5 zoobars and another with less than or equal to 5,
+  in which case we have no hope of covering both branches, even by
+  enumerating all rows, as in \underline{All}.
 
-There are two issues here. First, once loaded from the database, the properties
-of the \textit{user} object, e.g.\ \textit{user.person.zoobars} will not have
-concolic values, so the if statement will simply compare 2
-plain integers. In order to test both branches, we have to hope that
-in one iteration \textit{user} has more than 5 zoobars, and in another less than
-or equal to 5. There are no guarantees this will happen. Second, it may be the
-case that the database does not have a user with more than 5 zoobars and another
-with less than or equal to 5, in which case we have no
-hope of covering both branches, even by enumerating all rows, as in
-\underline{All}.
+  We attempt to solve these issues in two ways:
+  \begin{enumerate}
+  \item Create new concolic values for each database object's properties. When
+    \textit{user} is created above, we create a new concolic int for
+    \textit{user.person.zoobars}. The if statement will then generate a
+    new constraint, as desired, and z3 can then produce a concrete value for us
+    to test. Each concolic value in the system requires a unique ID, typically
+    selected by the user. In this case, we create them automatically using a
+    hash of the stack trace of the query as its unique identifier.
 
-We attempt to solve these issues in two ways:
-\begin{enumerate}
-\item Create new concolic values for each database object's properties. When
-\textit{user} is created above, we create a new concolic int for
-\textit{user.person.zoobars}. The if statement will then generate a
-new constraint, as desired, and z3 can then produce a concrete value for us
-to test. Each concolic value in the system requires a unique ID, typically
-selected by the user. In this case, we create them automatically using a
-hash of the stack trace of the query as its unique identifier.
+  \item Automatically create new database entries for concrete values that are
+    not present. When z3 generates a new value for \textit{user.person.zoobars},
+    say 0, it is possible that there is no user in the database with that value.
+    So we create a new entry with this and any other concrete values.
+  \end{enumerate}
 
-\item Automatically create new database entries for concrete values that are
-not present. When z3 generates a new value for \textit{user.person.zoobars},
-say 0, it is possible that there is no user in the database with that value.
-So we create a new entry with this and any other concrete values.
-\end{enumerate}
-
-Testing showed that this approach provides slightly better coverage than
-enumerating all possible
-rows, while also requiring slightly fewer iterations, making it a promising
-solution. The downside is that it makes it more difficult to write program
-invariants, which typically rely on the database remaining unchanged.
-
+  Testing showed that this approach provides slightly better coverage
+  than enumerating all possible rows, while also requiring slightly
+  fewer iterations, making it a promising solution. The downside is
+  that it makes it more difficult to write program invariants, which
+  typically rely on the database remaining unchanged.
 \end{enumerate}
 
 \end{document}
