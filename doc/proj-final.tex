@@ -43,7 +43,6 @@ the same bugs are found in our version. To that end, we have attempted
 to preserve the original application structure and code as much as
 possible.
 
-%% Outline
 % preserve concolic values
 % in url matching
 % in database queries
@@ -56,28 +55,24 @@ possible.
 % demonstrate concolic execution system on another Django application
 
 The second repository contains the modifications to the Lab 3 concolic
-execution framework that allow it to support Django applications. The
-primary requirement is to preserve concolic inputs throughout the
+execution framework that allow us to support Django applications. Most
+importantly, concolic inputs have to be preserved throughout the
 complex internals of Django, so that they reach the application logic
-intact. The 
+intact. This is achieved in symex/symdjango.py, which replaces
+symex/symflask.py from Lab 3. We found that our concolic inputs were
+being lost in the parsing of URLs and POST form data, which is deeply
+integrated into Django's codebase. Replacing those unsupported
+operations allowed the concolic values to pass through to zoobar.
 
+Since real web apps may have large databases, we considered various
+options to exercise good coverage without exploding the number of
+paths. We ended up implementing three different approaches in
+symex/symqueryset.py, each having its own pros and cons, and allowing
+the developer to choose which one to use.
 
-the introduction of symex/symdjango.py which does all the song and 
-  dance necessary to get concolic values into Django applications,
-
-
-and symex/symqueryset.py which implementes the database query
-  modifications needed for concolic execution as discussed above.
-
-
-the optimizations added to fuzzer.py,
-
-It is also
-worth noting that the changes to check-symex-zoobar.py are relatively
-straightforward. The passing of request data has been moved out of symflask
-(where it did not belong as it was application-dependent), and the URLs to test
-has been made explicit, but all the invariant tests are pretty much the same,
-as are the ways of invoking the checker.
+With an eye towards large applications and the complexity of Django,
+we also wanted to optimize the constraint-checking framework as much
+as possible. Several optimizations added to symex/fuzzer.py.
 
 In addition to zoobar, we also ran our concolic execution system on
 'gradapply' which is a real and a much complex website than zoobar.
@@ -88,6 +83,13 @@ Django-1.6. Then, it was straight-forward to extend the checking script
 for gradapply. We are currently checking for 6 different paths and it takes
 77 iterations to complete. Though, we did not aim to write invariants for
 this website and find real bugs, it is certainly possible to do so.
+
+It is also
+worth noting that the changes to check-symex-zoobar.py are relatively
+straightforward. The passing of request data has been moved out of symflask
+(where it did not belong as it was application-dependent), and the URLs to test
+has been made explicit, but all the invariant tests are pretty much the same,
+as are the ways of invoking the checker.
 
 Contrary to what we initially thought, we did not have to modify
 Django as part of this project. This was made possible by the dynamic
@@ -115,7 +117,7 @@ ones, and how we decided to tackle them:
   dynamic parameters that may be passed as input to the
   application. Unfortunately, regular expressions are not
   supported by Z3 (and support for them would probably prove
-  difficule to add), so we needed to come up with a different
+  difficult to add), so we needed to come up with a different
   scheme for making the choice of view, as well as parameters
   passed to the view, concolic.
 
@@ -207,16 +209,16 @@ than all others in the general setting. An overview of our approaches:
 
 \begin{enumerate}
 \item \underline{All:}
-  As in lab3, whenever we want to look up a value
-  in the database, we first fetch every object, then compare each turn to the
-  desired lookup key. We extend lab3's implementation to support multiple key
+  As in lab3, whenever we want to look up a value in the database, we
+  first fetch every object, then compare each turn to the desired
+  lookup key. We extend lab3's implementation to support multiple key
   lookups, and lookups across related tables.
 
-  This approach has the benefit that it is relatively simple, and generally
-  provides good coverage. The drawbacks are that it has the potential to re-test
-  the same branches of the programs, which is wasteful. Further, there are
-  situations (described below in \underline{SQL}) where branches will not be
-  covered.
+  This approach has the benefit that it is relatively simple, and
+  generally provides good coverage. The drawbacks are that it has the
+  potential to re-test the same branches of the programs, which is
+  wasteful. Further, there are situations (described below in
+  \underline{SQL}) where branches will not be covered.
 
 \item \underline{Mutation:}
   We implemented a mutation approach based on
@@ -258,18 +260,20 @@ than all others in the general setting. An overview of our approaches:
 
   We attempt to solve these issues in two ways:
   \begin{enumerate}
-  \item Create new concolic values for each database object's properties. When
-    \textit{user} is created above, we create a new concolic int for
-    \textit{user.person.zoobars}. The if statement will then generate a
-    new constraint, as desired, and Z3 can then produce a concrete value for us
-    to test. Each concolic value in the system requires a unique ID, typically
-    selected by the user. In this case, we create them automatically using a
-    hash of the stack trace of the query as its unique identifier.
+  \item Create new concolic values for each database object's
+    properties. When \textit{user} is created above, we create a new
+    concolic int for \textit{user.person.zoobars}. The if statement
+    will then generate a new constraint, as desired, and Z3 can then
+    produce a concrete value for us to test. Each concolic value in
+    the system requires a unique ID, typically selected by the user.
+    In this case, we create them automatically using a hash of the
+    stack trace of the query as its unique identifier.
 
-  \item Automatically create new database entries for concrete values that are
-    not present. When Z3 generates a new value for \textit{user.person.zoobars},
-    say 0, it is possible that there is no user in the database with that value.
-    So we create a new entry with this and any other concrete values.
+  \item Automatically create new database entries for concrete values
+    that are not present. When Z3 generates a new value for
+    \textit{user.person.zoobars}, say 0, it is possible that there is
+    no user in the database with that value. So we create a new entry
+    with this and any other concrete values.
   \end{enumerate}
 
   Testing showed that this approach provides slightly better coverage
