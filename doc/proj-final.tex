@@ -18,34 +18,37 @@ Luke Anderson, Jon Gjengset, Jeevana Inala, and Andrew Wang \\
 \section{Motivation}
 
 Concolic execution systems allow developers to verify security
-invariants in their applications. This was demonstrated in Lab 3, where
-the Z3 solver was used to find inputs that would trigger inconsistencies
-in zoobar balances. Unfortunately, the lab's framework is written
-specifically for the zoobar web application, and would be difficult to
-adapt for testing any other application. We therefore set out to provide
-an interface to concolic execution that works for any web app built on top
-of the popular Django framework.
+invariants in their applications. This was demonstrated in Lab 3,
+where the Z3 solver was used to find inputs that would trigger
+inconsistencies in zoobar balances. Unfortunately, the lab's
+framework is written specifically for the zoobar web application, and
+would be difficult to adapt for testing any other application. We
+therefore set out to provide an interface to concolic execution that
+works for any web app built on top of the popular Django framework.
 
 
 \section{Summary of results}
 
-This required finding ways of preserving concolic execution information during
-the execution of internal framework code in Django, as well as developing
-necessary optimizations to deal with the additional complexity provided by the
-many features Django has to offer.
+Our work is contained within two code repositories. These are
+publicly available at:
+\begin{itemize}
+\item \url{https://github.com/jonhoo/django-zoobar}
+\item \url{https://github.com/jonhoo/django-coex}
+\end{itemize}
 
-Over the course of the project, we have produced two codebases of interest.
-First, we have ported the Stanford Zoobar application to Django. The code for
-this can be found at \url{https://github.com/jonhoo/django-zoobar}. We have
-intentionally attempted to preserve the application structure and code from the
-original codebase as far as possible, both to make comparisons with the
-original easier, as well as to ensure that the same set of bugs can be found in
-both.
+The first repository is a port of the zoobar application to Django.
+This enables us to test our concolic framework with the proven Lab 3
+version. Specifically, we demonstrate the same functionality and that
+the same bugs are found in our version. To that end, we have attempted
+to preserve the original application structure and code as much as
+possible.
 
-Second, we have modified and expanded the Lab 3 concolic execution framework to
-support Django applications, as well added a testing script for the ported
-version of the Zoobar application. The code for this can be found at
-\url{https://github.com/jonhoo/django-coex}. Changes of particular interest are
+The second repository contains out modifications to the Lab 3 concolic
+execution framework to support Django applications, as well as a
+testing script for the ported zoobar application.
+
+
+Changes of particular interest are
 the optimizations added to fuzzer.py, the introduction of symex/symdjango.py
 which does all the song and dance necessary to get concolic values into Django
 applications, and symex/symqueryset.py which implementes the database query
@@ -75,6 +78,11 @@ this website and find real bugs, it is certainly possible to do so.
 
 \section{Challenges}
 
+This required finding ways of preserving concolic execution information during
+the execution of internal framework code in Django, as well as developing
+necessary optimizations to deal with the additional complexity provided by the
+many features Django has to offer.
+
 Over the course of developing this framework, we came across a number of
 challenges; both anticipated and unexpected. We list here the more important
 ones, and how we decided to tackle them:
@@ -86,7 +94,7 @@ ones, and how we decided to tackle them:
   lookups. These patterns can get very complex, and often involve
   dynamic parameters that may be passed as input to the
   application. Unfortunately, regular expressions are not
-  supported by z3 (and support for them would probably prove
+  supported by Z3 (and support for them would probably prove
   difficule to add), so we needed to come up with a different
   scheme for making the choice of view, as well as parameters
   passed to the view, concolic.
@@ -277,13 +285,13 @@ than all others in the general setting. An overview of our approaches:
   \item Create new concolic values for each database object's properties. When
     \textit{user} is created above, we create a new concolic int for
     \textit{user.person.zoobars}. The if statement will then generate a
-    new constraint, as desired, and z3 can then produce a concrete value for us
+    new constraint, as desired, and Z3 can then produce a concrete value for us
     to test. Each concolic value in the system requires a unique ID, typically
     selected by the user. In this case, we create them automatically using a
     hash of the stack trace of the query as its unique identifier.
 
   \item Automatically create new database entries for concrete values that are
-    not present. When z3 generates a new value for \textit{user.person.zoobars},
+    not present. When Z3 generates a new value for \textit{user.person.zoobars},
     say 0, it is possible that there is no user in the database with that value.
     So we create a new entry with this and any other concrete values.
   \end{enumerate}
