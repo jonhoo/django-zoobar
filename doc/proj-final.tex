@@ -43,11 +43,6 @@ the same bugs are found in our version. To that end, we have attempted
 to preserve the original application structure and code as much as
 possible.
 
-The second repository contains modifications to the Lab 3 concolic
-execution framework to support Django applications, as well as a
-testing script for the ported zoobar application.
-
-
 %% Outline
 % preserve concolic values
 % in url matching
@@ -60,11 +55,21 @@ testing script for the ported zoobar application.
 
 % demonstrate concolic execution system on another Django application
 
-Changes of particular interest are
+The second repository contains the modifications to the Lab 3 concolic
+execution framework that allow it to support Django applications. The
+primary requirement is to preserve concolic inputs throughout the
+complex internals of Django, so that they reach the application logic
+intact. The 
+
+
 the introduction of symex/symdjango.py which does all the song and 
   dance necessary to get concolic values into Django applications,
+
+
 and symex/symqueryset.py which implementes the database query
   modifications needed for concolic execution as discussed above.
+
+
 the optimizations added to fuzzer.py,
 
 It is also
