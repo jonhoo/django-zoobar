@@ -56,12 +56,19 @@ operations allowed the concolic values to pass through to zoobar.
 Since real web apps may have large databases, we considered various
 options to exercise good coverage without exploding the number of
 paths. We ended up implementing three different approaches in
-symex/symqueryset.py, each having its own pros and cons, and allowing
-the developer to choose which one to use.
+symex/symqueryset.py: In addition to searching all database items as
+in Lab 3, we also tried mutating the WHERE clause of SQL queries to
+capture subtle edge cases, and dynamically inserting concolic values
+in the database itself. These approaches all have their pros and cons,
+and in the end, we allow the developer to choose which one to use.
 
 With an eye towards large applications and the complexity of Django,
 we also wanted to optimize the constraint-checking framework as much
-as possible. Several optimizations added to symex/fuzzer.py.
+as possible. Several optimizations were added to symex/fuzzer.py. Some
+of these were drawn from the KLEE paper (Cadar, Dunbar, and Engler
+2008), such as removing implied constraints, and keeping a
+counter-example cache. The most impactful optimization, though, was
+to avoid duplicate inputs arising from different path conditions.
 
 Use of our concolic framework by the developer is exemplified in
 check-symex-zoobar.py, which was adapted from Lab 3. For reasons
@@ -77,9 +84,8 @@ is a real and a much complex website than zoobar. Since gradapply is
 written in an older version of Django (1.6), we first extended our
 system to support version 1.6. Then it was straightforward to adapt
 the checking script. The system tests six different URL paths, and
-completes in 77 iterations. In the time we had, we did not aim to
-write invariants for gradapply and find real bugs, though it is
-certainly possible to do so.
+completes in 77 iterations. In the time we had, we descoped writing
+invariants and finding bugs in gradapply.
 
 Contrary to what we initially thought, we did not have to modify the
 Django codebase. This was made possible by the dynamic nature of
