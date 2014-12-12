@@ -65,10 +65,10 @@ and in the end, we allow the developer to choose which one to use.
 With an eye towards large applications and the complexity of Django,
 we also wanted to optimize the constraint-checking framework as much
 as possible. Several optimizations were added to symex/fuzzer.py. Some
-of these were drawn from the KLEE paper (Cadar, Dunbar, and Engler
-2008), such as removing implied constraints, and keeping a
-counter-example cache. The most impactful optimization, though, was
-to avoid duplicate inputs arising from different path conditions.
+of these were drawn from KLEE~(Cadar, Dunbar, and Engler 2008), such
+as removing implied constraints, and keeping a counter-example cache.
+The most impactful optimization, though, was to avoid duplicate inputs
+arising from different path conditions.
 
 Use of our concolic framework by the developer is exemplified in
 check-symex-zoobar.py, which was adapted from Lab 3. For reasons
@@ -192,85 +192,56 @@ made and any challenges we faced in its subsection below.
 
 \subsection{Handling database queries}
 
-We implemented 3 different approaches for accessing the database in a
-concolic-compatible way. Each approach offers both positives and
-negatives, and it seems unlikely that any solution will be superior
-than all others in the general setting. An overview of our approaches:
+The challenging tradeoff we faced was to achieve good coverage
+exposing the internal database query decisions, while retaining
+efficiency. The ideal solution may be a hybrid approach that adapts to
+situations, but for now, we discuss the strengths and weaknesses of
+individual approaches
 
 \begin{enumerate}
 \item \underline{All:}
-  As in lab3, whenever we want to look up a value in the database, we
-  first fetch every object, then compare each turn to the desired
-  lookup key. We extend lab3's implementation to support multiple key
-  lookups, and lookups across related tables.
+  This mirrors Lab 3, where we iterate over the objects returned by
+  the database, comparing them to the lookup key. We extend Lab 3's
+  implementation to support multiple key lookups, and lookups across
+  related tables.
 
-  This approach has the benefit that it is relatively simple, and
-  generally provides good coverage. The drawbacks are that it has the
-  potential to re-test the same branches of the programs, which is
-  wasteful. Further, there are situations (described below in
-  \underline{SQL}) where branches will not be covered.
+  This approach is relatively simple, and generally provides good
+  coverage. However, it potentially re-tests the same branches of the programs, which is wasteful. Further, there are situations (described
+  below in \underline{SQL}) where branches will not be covered.
 
 \item \underline{Mutation:}
-  We implemented a mutation approach based on
-  ConSMutate~(Sarkar, et.\ al. 2012). The goal is to catch typical
-  programmer errors, e.g.\ writing a database query with
-  $\textit{zoobars} > 10$ instead of \textit{zoobars }$ \geq 10$.
-
-  Whenever the database is queried, we extract the WHERE clause and
-  create mutated variants by changing the relational operator. We run
-  each mutation and compare its result with that of the original. If
-  the results are the same, we do nothing. If they are different, we
+  We implemented a mutation approach based on ConSMutate~(Sarkar,
+  et.\ al. 2012). The WHERE clause from database queries is extracted
+  and mutated by changing the relational operator. For example, one
+  might write $\textit{zoobars} > 10$ instead of $\textit{zoobars}
+  \geq 10$. If running the mutated query yieds a new result, then we
   add the symmetric difference of the two conditions as a new path
-  constraint: hopefully this new constraint will lead to a concrete
-  value that distinguishes the two conditions, and explores an
-  untouched branch of the code.
-
-  This approach has lower coverage but can potentially catch common errors.
+  constraint. The hope is that the new constraint will lead to a
+  concrete value explores an untouched branch of the code. This
+  approach has lower coverage but can potentially catch common
+  programmer errors.
 
 \item \underline{SQL:}
-  Consider the following pseudocode:
-  \begin{verbatim}
-  user = User.objects.get(username='bob')
-  if user.person.zoobars > 5:
-    # do something
-  else:
-    # do something else
-  \end{verbatim}
+  Two obstacles prevent the following code from exploring both
+  branches of the IF statement: \textit{users.person.zoobars} is not
+  concolic, and there may be no user that has more than 5 zoobars.
+  \begin{verbatim}user = User.objects.get(username='bob')
+if user.person.zoobars > 5:
+  # do something
+else:
+  # do something else\end{verbatim}
+  To address the first obstacle, we map database object's properties
+  to new concolic values, e.g., creating a new concolic int for
+  \textit{user.person.zoobars} when \textit{user} is assigned. To
+  explore more program branches, we automatically create new database
+  entries for concrete values that are absent, e.g., when Z3 generates
+  a new value for \textit{user.person.zoobars}, say 7, we ensure that
+  there is a database entry with that value.
 
-  There are two issues here. First, once loaded from the database, the
-  properties of the \textit{user} object, e.g.\ \textit{user.person.zoobars}
-  will not have concolic values, so the if statement will simply compare
-  two plain integers. In order to test both branches, we have to hope that
-  in one iteration \textit{user} has more than 5 zoobars, and in another
-  less than or equal to 5. There are no guarantees this will happen.
-  Second, it may be the case that the database does not have a user
-  with more than 5 zoobars and another with less than or equal to 5,
-  in which case we have no hope of covering both branches, even by
-  enumerating all rows, as in \underline{All}.
-
-  We attempt to solve these issues in two ways:
-  \begin{enumerate}
-  \item Create new concolic values for each database object's
-    properties. When \textit{user} is created above, we create a new
-    concolic int for \textit{user.person.zoobars}. The if statement
-    will then generate a new constraint, as desired, and Z3 can then
-    produce a concrete value for us to test. Each concolic value in
-    the system requires a unique ID, typically selected by the user.
-    In this case, we create them automatically using a hash of the
-    stack trace of the query as its unique identifier.
-
-  \item Automatically create new database entries for concrete values
-    that are not present. When Z3 generates a new value for
-    \textit{user.person.zoobars}, say 0, it is possible that there is
-    no user in the database with that value. So we create a new entry
-    with this and any other concrete values.
-  \end{enumerate}
-
-  Testing showed that this approach provides slightly better coverage
-  than enumerating all possible rows, while also requiring slightly
-  fewer iterations, making it a promising solution. The downside is
-  that it makes it more difficult to write program invariants, which
-  typically rely on the database remaining unchanged.
+  Compared to \underline{All}, we achieve slightly greater coverage
+  and in slightly fewer iterations, which is promising. The downside
+  is that dynamically adding values to the database makes it more
+  difficult to write program invariants.
 \end{enumerate}
 
 \subsection{Concolic optimizations}
