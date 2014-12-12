@@ -63,7 +63,7 @@ in the database itself. These approaches all have their pros and cons,
 and in the end, we allow the developer to choose which one to use.
 
 With an eye towards large applications and the complexity of Django,
-we also wanted to optimize the constraint-checking framework as much
+we wanted to optimize the constraint-checking framework as much
 as possible. Several optimizations were added to symex/fuzzer.py. Some
 of these were drawn from KLEE~(Cadar, Dunbar, and Engler 2008), such
 as removing implied constraints, and keeping a counter-example cache.
@@ -73,21 +73,21 @@ arising from different path conditions.
 Use of our concolic framework by the developer is exemplified in
 check-symex-zoobar.py, which was adapted from Lab 3. For reasons
 explained in the Details section, the first step is to make explicit
-the URLs to test and the database query method. Then, the test
+the URLs to test and the database query method to use. Then, the test
 function is defined similarly, using the same invariants as in Lab 3,
 and the concolic tester is invoked on it. Using the default settings
 of checking all database objects and turning on all optimizations, the
 framework runs 48 iterations in approximately 30 seconds.
 
 Finally, we also ran our concolic execution system on gradapply, which
-is a real and a much complex website than zoobar. Since gradapply is
+is a real application and is more complex than zoobar. Since gradapply is
 written in an older version of Django (1.6), we first extended our
 system to support version 1.6. Then it was straightforward to adapt
 the checking script. The system tests six different URL paths, and
 completes in 77 iterations. In the time we had, we descoped writing
 invariants and finding bugs in gradapply.
 
-Contrary to what we initially thought, we did not have to modify the
+Contrary to our initial thoughts, we did not have to modify the
 Django codebase. This was made possible by the dynamic nature of
 Python, which allowed us to overwrite or bypass methods that were
 incompatible with concolic execution.
@@ -95,8 +95,8 @@ incompatible with concolic execution.
 
 \section{Implementation details}
 
-For each component of the project, we explain the design decisions
-made and any challenges we faced in its subsection below.
+For each component of the project, we explain our design decisions
+and the challenges we faced.
 
 \subsection{Preserving concolic values}
 
@@ -129,59 +129,63 @@ lookups.
   data and URL resolution, and finding ways to circumvent those
   operations. It is likely that there are still several corner cases
   in the Django codebase where concolic values are lost, but the best
-  way to identify would be to continue testing on a diverse set of
+  way to identify them would be additional testing on a diverse set of
   applications.
 \end{enumerate}
 
 \subsection{Handling database queries}
 
-The challenging tradeoff we faced was to achieve good coverage
-exposing the internal database query decisions, while retaining
-efficiency. The ideal solution may be a hybrid approach that adapts to
-situations, but for now, we discuss the strengths and weaknesses of
-individual approaches
+We aim to achieve good coverage
+by exposing the internal database query decisions, while retaining
+efficiency on large datasets. This goal is difficult to achieve with a single
+algorithm; the ideal solution is likely a hybrid approach that dynamically adapts to
+the situation at hand, but for now, we discuss the strengths and weaknesses of
+individual approaches.
 
 \begin{enumerate}
 \item \underline{All:}
-  This mirrors Lab 3, where we iterate over the objects returned by
-  the database, comparing them to the lookup key. We extend Lab 3's
-  implementation to support multiple key lookups, and lookups across
+  This mirrors Lab 3: We iterate over all rows and compare each to the lookup
+  key.
+  We extend this 
+  to support lookups with multiple keys and lookups across
   related tables.
 
   This approach is relatively simple, and generally provides good
-  coverage. However, it potentially re-tests the same branches of the programs, which is wasteful. Further, there are situations (described
+  coverage. However, it potentially re-tests the same branches,
+  which is wasteful, particularly for large datasets. Further, there are situations (described
   below in \underline{SQL}) where branches will not be covered.
 
 \item \underline{Mutation:}
   We implemented a mutation approach based on ConSMutate~(Sarkar,
-  et.\ al. 2012). The WHERE clause from database queries is extracted
-  and mutated by changing the relational operator. For example, one
-  might write $\textit{zoobars} > 10$ instead of $\textit{zoobars}
+  et.\ al. 2012): a query is made, we extract the WHERE clause,
+  then mutate it by changing the relational operator, e.g.\, 
+  $\textit{zoobars} > 10$ is one possible mutation of $\textit{zoobars}
   \geq 10$. If running the mutated query yields a new result, then we
   add the symmetric difference of the two conditions as a new path
   constraint. The hope is that the new constraint will lead to a
-  concrete value explores an untouched branch of the code. This
+  concrete value that explores an untouched branch of the code. This
   approach has lower coverage but can potentially catch common
   programmer errors.
 
 \item \underline{SQL:}
-  Two obstacles prevent the following code from exploring both
-  branches of the IF statement: \textit{users.person.zoobars} is not
-  concolic, and there may be no user that has more than 5 zoobars.
+  Two obstacles may prevent us from exploring both branches of the IF statement
+  below:
+  1) \textit{users.person.zoobars} is not
+  concolic; 2) there may be no user with $>$ 5 zoobars.
   \begin{verbatim}user = User.objects.get(username='bob')
 if user.person.zoobars > 5:
   # do something
 else:
   # do something else\end{verbatim}
-  Our solution is to map database object's properties to new concolic
+  Our solution is to map each database object's properties to new concolic
   values, e.g., creating a new concolic int for
-  \textit{user.person.zoobars} when \textit{user} is assigned. Then we
-  we automatically create new database entries when Z3 generates
+  \textit{user.person.zoobars} when \textit{user} is assigned. We also
+  automatically create new database entries when Z3 generates
   concrete values that are absent, e.g., before we try an input where
   \textit{user.person.zoobars} is 7, we ensure that there is a
   database entry with that value. Compared to \underline{All}, we
   achieve slightly better coverage on zoobar in even fewer iterations.
-  The downside is that in general, dynamically adding values to the
+  The downside is that, in general, dynamically adding values to the
   database makes it more difficult to write program invariants.
 \end{enumerate}
 
@@ -193,11 +197,11 @@ by reducing the number of iterations or reducing the time it takes to
 solve each Z3 instance.
 
 \begin{enumerate}
-\item To reduce the number of iterations, we kept a record of previous
+\item To reduce the number of iterations, we keep a record of previous
   inputs, in addition to previous paths as in Lab 3. Sometimes,
-  different path conditions may yield the same solution, in which case
-  the web app would process and identical request. Avoiding this
-  repeat reduced zoobar's iterations from 89 to 81.
+  different path conditions yield the same solution, in which case
+  the web app would process an identical request. Avoiding this
+  situation reduced zoobar's iterations from 89 to 81.
 
 \item To reduce the complexity of the constraint programs sent to Z3,
   we detect when constraints are implied by others. This is done each
