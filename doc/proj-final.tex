@@ -101,48 +101,22 @@ made and any challenges we faced in its subsection below.
 \subsection{Preserving concolic values}
 
 \begin{enumerate}
-\item URL parsing in Django is based on nested regular expressions that
-  are used both to determine which application method (``view''
+\item URL parsing in Django is based on nested regular expressions
+  that are used both to determine which application method (``view''
   in Django terminology) should be invoked, and to do reverse URL
-  lookups. These patterns can get very complex, and often involve
-  dynamic parameters that may be passed as input to the
-  application. Unfortunately, regular expressions are not
-  supported by Z3 (and support for them would probably prove
-  difficult to add), so we needed to come up with a different
-  scheme for making the choice of view, as well as parameters
-  passed to the view, concolic.
+  lookups. Unfortunately, regular expressions are not supported by Z3
+  and would be difficult to add, so we needed another way to make the
+  choice of view and the input parameters concolic.
 
-  There are many ways we could have chosen to approach this
-  problem. One that is fairly straightforward is to dynamically
-  resolve the list of all views in an application, and call them
-  directly, ignoring URLs altogether.  The downside of this
-  approach is that this would bypass all of Django's middleware
-  modules (handlers that the request is passed through before it
-  is passed to the appropriate view), which many applications
-  rely heavily on for features such as session management and
-  CSRF protection.
-
-  Instead, we chose to have the developer explicitly specify
-  which URLs map to which views, along with a Python dictionary
-  of named parameters. This is not very elegant, and requires
-  that the developers enumerates all views they want to exercise,
-  but it is significantly easier and less error-prone to
-  implement than any kind of dynamic discovery scheme.
-
-\item Finding a good way of exposing to the concolic execution framework
-  decisions made inside the database proved challenging. We implemented 3
-  approaches, described below, each with tradeoffs. In general, it seems
-  that higher code coverage typically comes at the cost of efficiency, and an
-  ideal solution may be a hybrid approach that can detect situations in which
-  one algorithm is more effective than the others and adapt accordingly.
-
-  We have some ideas about how this search might be improved by
-  specifically looking for other rows that do not match the given
-  condition, and where other database values are different, but
-  did not have time to implement these by the project deadline.
-  Instead, we leave these improvements as future work. In the
-  meantime, developers can select an approach of their choosing, or use all 3
-  for more exhaustive testing.
+  One way would have been to ignore URLs altogether, and instead
+  dynamically resolve a list of all the views in an application to
+  call them directly However, this would bypass Django's middleware
+  modules, which many applications rely on for features like session
+  management and CSRF protection. Instead, we chose to let the
+  developer specify which URLs map to which views, along with a
+  dictionary of named parameters. This may not be very elegant, but it
+  is more explicit and less error-prone than any kind of dynamic
+  discovery scheme.
 
 \item Django, and applications written atop it, use a significant
   subset of the operations and types provided by the Python
@@ -176,17 +150,6 @@ made and any challenges we faced in its subsection below.
   include finding better ways of determining view inputs, or at
   the very least, simplifying the developer's job of telling the
   framework about the format of these inputs.
-
-\item The framework from Lab 3 only tests invariants across single
-  requests. Realistically however, a sequence of requests may be
-  required for a particular bug to be exposed. We thus had to add
-  support for running multiple requests one after another, while
-  considering the entire sequence of requests a single execution.
-  This is primarily hard because of the exponential growth of the
-  search space, as the number of branches for each request are
-  multiplied together. We chose to add this feature to the
-  framework for the sake of completeness, but have not had time
-  to test or optimize this feature for any of our applications.
 \end{enumerate}
 
 
@@ -230,18 +193,16 @@ if user.person.zoobars > 5:
   # do something
 else:
   # do something else\end{verbatim}
-  To address the first obstacle, we map database object's properties
-  to new concolic values, e.g., creating a new concolic int for
-  \textit{user.person.zoobars} when \textit{user} is assigned. To
-  explore more program branches, we automatically create new database
-  entries for concrete values that are absent, e.g., when Z3 generates
-  a new value for \textit{user.person.zoobars}, say 7, we ensure that
-  there is a database entry with that value.
-
-  Compared to \underline{All}, we achieve slightly greater coverage
-  and in slightly fewer iterations, which is promising. The downside
-  is that dynamically adding values to the database makes it more
-  difficult to write program invariants.
+  Our solution is to map database object's properties to new concolic
+  values, e.g., creating a new concolic int for
+  \textit{user.person.zoobars} when \textit{user} is assigned. Then we
+  we automatically create new database entries when Z3 generates
+  concrete values that are absent, e.g., before we try an input where
+  \textit{user.person.zoobars} is 7, we ensure that there is a
+  database entry with that value. Compared to \underline{All}, we
+  achieve slightly better coverage on zoobar in even fewer iterations.
+  The downside is that in general, dynamically adding values to the
+  database makes it more difficult to write program invariants.
 \end{enumerate}
 
 \subsection{Concolic optimizations}
