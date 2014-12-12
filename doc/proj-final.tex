@@ -275,47 +275,32 @@ than all others in the general setting. An overview of our approaches:
 
 \subsection{Concolic optimizations}
 
-Because our goal is to deploy concolic execution on large, real-world
-Django web applications, we would like the constraint-checking framework
-to be as efficient as possible. To that end, we implemented the
-following optimizations to the Lab 3 framework in fuzzy.py and measured
-their performance.
+The most expensive component of concolic execution is running the Z3
+solver multiple times on each iteration. Improving runtime can be done
+by reducing the number of iterations or reducing the time it takes to
+solve each Z3 instance.
 
-\begin{itemize}
-\item When a request has been processed through the web app and a path
-  condition is obtained, one identifies partial paths that branch off the
-  current path and puts them on the queue. In Lab 3, we were branching
-  both ``left'' and ``right'' on each element in the path. However, since
-  one of these is going to be a partial path of the current one, it adds
-  no new information. Not adding that path on the queue reduces the number
-  of iterations by half. In Zoobar, we went from 181 to 89 iterations.
+\begin{enumerate}
+\item To reduce the number of iterations, we kept a record of previous
+  inputs, in addition to previous paths as in Lab 3. Sometimes,
+  different path conditions may yield the same solution, in which case
+  the web app would process and identical request. Avoiding this
+  repeat reduced zoobar's iterations from 89 to 81.
 
-\item We noticed that the concolic engine often ran inputs it had
-  already tried, even though we already maintain a cache of path
-  conditions previously solved. It turns out different path conditions
-  may yield the same solution, in which case they should be considered
-  equivalent. The solver computation cannot be avoided, but one can
-  eliminate processing an identical request in the web app. This further
-  reduced Zoobar's iterations from 89 to 81.
+\item To reduce the complexity of the constraint programs sent to Z3,
+  we detect when constraints are implied by others. This is done each
+  time we extend a path condition by a new constraint. Note that
+  determining implication itself is a constraint program, so to avoid
+  running Z3 on these, we determined a set of syntactic rules, which
+  capture most implications in zoobar that Z3 would have found. This
+  further reduced the number of iterations to 75.
 
-\item The KLEE paper mentions removing redundant constraints from a
-  constraint program to reduce the complexity for the solver. If a new
-  constraint implies an existing one, or vice versa, then the constraint
-  that is implied can be eliminated.
-  Determining implication in the general case is expensive, requiring a
-  solver. To avoid the cost of running Z3, we checked pairs of constraints
-  against several patterns of string constraints where one is known to
-  imply the other. We were able to detect all implications in Zoobar that
-  Z3 would have, and further reduced the number of iterations to 75.
-
-\item A novel feature of KLEE is its use of the counter-example cache
-  that records previous solutions or no-goods, to be used as a heuristic
-  on future iterations. The cache does not eliminate any iterations, but
-  the runtime benefit of finding a solution in the cache may outweigh the
-  cost of looking up the cache and having to run the solver anyway.
-  The cache is implemented as a UBtree by [Hoffmann and Koehler],
-  which allows efficient subset and superset queries. On Zoobar, the
-  counter-example cache was successfully employed 28 times.
-\end{itemize}
+\item Sometimes a constraint program may not need to be solved if a
+  solution has already been recorded in a counter-example cache. The
+  cache does not eliminate any iterations, but the amortized runtime
+  benefit of finding a solution in the cache may outweigh the cost of
+  having to run the solver anyway. On Zoobar, the counter-example
+  cache was successfully employed 28 times.
+\end{enumerate}
 
 \end{document}
