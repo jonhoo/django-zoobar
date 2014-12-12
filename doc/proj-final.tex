@@ -21,7 +21,7 @@ demonstrated in Lab 3, where the Z3 solver was used to find inputs that would
 trigger inconsistencies in zoobar balances. Unfortunately, the lab's framework
 is written specifically for Zoobar, and would therefore not work for other
 applications without substantial modifications.  Invariant checking is useful
-to a wide range of applications, and thus we decided to make our 6.858 final
+for a wide range of applications, and thus we decided to make our 6.858 final
 project building a generic concolic execution interface for any Django-based
 web application.
 
@@ -29,7 +29,7 @@ web application.
 
 Our first step towards running concolic invariant checking on Django
 applications was to build an application we could test. For this, we decided to
-port the original lab 3 Zoobar application. By preserving as much of the
+port the original Lab 3 zoobar application. By preserving as much of the
 original application structure and code as, while still staying withing the
 confines of idiomatic Django application construction, this enabled us to test
 our concolic framework against the same set of invariants used by the Lab 3
