@@ -18,10 +18,10 @@ Luke Anderson, Jon Gjengset, Jeevana Inala, and Andrew Wang \\
 Concolic execution systems allow developers to verify that invariants in their
 applications are not violated no matter what input is given by a user. This was
 demonstrated in Lab 3, where the Z3 solver was used to find inputs that would
-trigger inconsistencies in zoobar balances. Unfortunately, the lab's framework
+trigger inconsistencies in Zoobar balances. Unfortunately, the lab's framework
 is written specifically for Zoobar, and would therefore not work for other
 applications without substantial modifications.  Invariant checking is useful
-to a wide range of applications, and thus we decided to make our 6.858 final
+for a wide range of applications, and thus we decided to make our 6.858 final
 project building a generic concolic execution interface for any Django-based
 web application.
 
@@ -30,27 +30,27 @@ web application.
 Our first step towards running concolic invariant checking on Django
 applications was to build an application we could test. For this, we decided to
 port the original lab 3 Zoobar application. By preserving as much of the
-original application structure and code as, while still staying withing the
-confines of idiomatic Django application construction, this enabled us to test
+original application structure and code as possible, while still staying within the
+confines of idiomatic Django application construction, we were able to test 
 our concolic framework against the same set of invariants used by the Lab 3
 version. Specifically, we demonstrate the same functionality as the original
-application, and show that  the same bugs are found in our invariant checker.
+application, and show that the same bugs are found in our invariant checker.
 The code is available at \url{https://github.com/jonhoo/django-zoobar}.
 
 The next step was to construct a version of the Lab 3 concolic execution
-framework that cold support Django applications. The biggest change
+framework that could support Django applications. The biggest change
 we made was undoubtedly to make concolic inputs be preserved throughout the
 complex internals of Django, so that they reach the application logic
 intact. This is implemented in \texttt{symex/symdjango.py}, which replaces
-\texttt{symex/symflask.py} from Lab 3. In particular, we found that our
+\texttt{symex/symflask.py} from Lab 3. In particular, we found that
 concolic inputs were being lost in the parsing of URLs and POST form data,
 which is deeply integrated into Django's codebase. Replacing those unsupported
 operations allowed the concolic values to pass through to Zoobar without losing
 their symbolic half.
 
-Since real web apps may have large databases, we also considered various
-options to exercise good coverage while avoiding an exponential increase in the
-number of paths to check. We ended up implementing three different approaches
+Since real web apps may have large databases, we considered various
+query strategies with the aim of achieving good coverage while avoiding an exponential increase in the
+number of paths to check. We implemented three different approaches
 in \texttt{symex/symqueryset.py}: In addition to searching all database items as
 in Lab 3, we also tried mutating the WHERE clause of SQL queries to
 capture subtle edge cases, and dynamically inserting concolic values
@@ -124,7 +124,7 @@ design decisions and the challenges we faced.
   fraction of the vast set of Python operations available to Django
   and web apps. For Zoobar, we spent considerable time locating
   unsupported operations in the Django codebase, such as POST form
-  data serialization, and URL resolution, and finding ways to circumvent those
+  data serialization and URL resolution, and finding ways to circumvent those
   operations. It is likely that there are still several corner cases
   in the Django codebase where concolic values are lost, but the best
   way to identify them would be additional testing on a diverse set of
@@ -139,7 +139,7 @@ efficiency on large datasets. This goal is difficult to achieve with a single
 algorithm, as different datasets may or may not expose different branches in
 applications. The ideal solution is likely a hybrid approach that dynamically adapts to
 the situation at hand, but for now, we discuss the strengths and weaknesses of
-the individual database enumeration approaches we developed.
+the individual database approaches we developed.
 
 \begin{enumerate}
 \item \textit{All}:
@@ -158,7 +158,7 @@ the individual database enumeration approaches we developed.
   et.\ al. 2012): when a query is made, we extract the WHERE clause,
   then mutate it by changing the relational operator, e.g.\, 
   $zoobars > 10$ is one possible mutation of $zoobars \geq 10$.
-  If running the mutated query yields a new result, then we
+  If running the mutated query yields the same result as the original query, we
   add the symmetric difference of the two conditions as a new path
   constraint. The hope is that the new constraint will lead to a
   concrete value that explores an untouched branch of the code. This
@@ -167,7 +167,7 @@ the individual database enumeration approaches we developed.
 
 \item \textit{SQL}:
   This strategy attempts to maximize the branch coverage in applications. To
-  exemplify, cosnider the two obstacles that may prevent us from exploring both
+  exemplify, consider the two obstacles that may prevent us from exploring both
   branches of the IF statement below:
   1) \textit{users.person.zoobars} is not
   concolic; 2) there may be no user with $>$ 5 zoobars.
@@ -181,7 +181,7 @@ else: # do something else\end{verbatim}
   concrete values that are absent, e.g., before we try an input where
   \textit{user.person.zoobars} is 7, we ensure that there is a
   database entry with that value. Compared to \textit{All}, we
-  achieve slightly better coverage on zoobar in even fewer iterations.
+  achieve slightly better coverage on Zoobar in even fewer iterations.
   The downside is that changing the database during a test makes it harder to
   write invariants.
 \end{enumerate}
