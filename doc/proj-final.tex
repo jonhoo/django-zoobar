@@ -102,56 +102,35 @@ made and any challenges we faced in its subsection below.
 
 \begin{enumerate}
 \item URL parsing in Django is based on nested regular expressions
-  that are used both to determine which application method (``view''
-  in Django terminology) should be invoked, and to do reverse URL
-  lookups. Unfortunately, regular expressions are not supported by Z3
-  and would be difficult to add, so we needed another way to make the
-  choice of view and the input parameters concolic.
+  that are used both to determine which view should be invoked.
+  Unfortunately, regular expressions are not supported by Z3, so we
+  needed another way to make the choice of view and the input
+  parameters concolic. The simplest solution we arrived at was to
+  let the developer specify a mapping of URLs to views, along with
+  named parameters. This was favored over calling all the views in an
+  application directly, which is more automated, but would also
+  bypass all the Django middleware modules that many applications
+  rely on.
 
-  One way would have been to ignore URLs altogether, and instead
-  dynamically resolve a list of all the views in an application to
-  call them directly However, this would bypass Django's middleware
-  modules, which many applications rely on for features like session
-  management and CSRF protection. Instead, we chose to let the
-  developer specify which URLs map to which views, along with a
-  dictionary of named parameters. This may not be very elegant, but it
-  is more explicit and less error-prone than any kind of dynamic
-  discovery scheme.
+\item Web applications receive input from a number of sources: in-URL
+  parameters, GET/POST parameters, file uploads, cookies, etc., and
+  there is no simple way to automatically determine which of these an
+  application cares about. For the scope of the project, we took the
+  approach of requiring the developer to explicitly construct the
+  datasets with concolic values and pass them in whenever a URL points
+  to a relevant view. Future work could reduce the developer's burden
+  in telling the framework about the format of these inputs.
 
-\item Django, and applications written atop it, use a significant
-  subset of the operations and types provided by the Python
-  language. The concolic execution framework only supports a
-  subset of these (regular expressions and floating point numbers
-  are noteworthy examples), and thus the concolic nature of
-  values can easily get lost for today's complex web
-  applications. We spent considerable time determining exactly
-  which part of the Django codebase was using unsupported
-  operations (e.g. URL resolution), and coming up with ways of
-  circumventing those operations. Many of these were deeply
-  integrated into the Django codebase, such as the parsing of
-  POST form data and URLs. There are likely still parts of the
-  Django codebase where concolic values would be lost, and
-  testing the framework on a more diverse set of applications
-  would be necessary to expose all of the corner-cases.
-
-\item Web applications receive input from a number of sources; in-URL
-  parameters, GET parameters, POST form parameters, file uploads,
-  environment variables, and cookies just to name a few.
-  Furthermore, there is no straightforward way of determining
-  which of these a given application view uses, an in particular,
-  which values it cares about. We have taken the approach of
-  requiring the developer to explicitly construct the datasets
-  (with concolic values where appropriate) to give to
-  applications, and to pass these datasets in whenever a URL
-  points to a relevant view. While this is inconvenient (the
-  developer has to know and enumerate what data can be passed to
-  every view of interest), it was the only feasible way we could
-  imagine doing it in the available timeframe. Future work should
-  include finding better ways of determining view inputs, or at
-  the very least, simplifying the developer's job of telling the
-  framework about the format of these inputs.
+\item So far, the concolic execution framework supports only a
+  fraction of the vast set of Python operations available to Django
+  and web apps. For zoobar, we spent considerable time locating
+  unsupported operations in the Django codebase, such as POST form
+  data and URL resolution, and finding ways to circumvent those
+  operations. It is likely that there are still several corner cases
+  in the Django codebase where concolic values are lost, but the best
+  way to identify would be to continue testing on a diverse set of
+  applications.
 \end{enumerate}
-
 
 \subsection{Handling database queries}
 
