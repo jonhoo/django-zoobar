@@ -43,17 +43,6 @@ the same bugs are found in our version. To that end, we have attempted
 to preserve the original application structure and code as much as
 possible.
 
-% preserve concolic values
-% in url matching
-% in database queries
-% in Django internals
-% from multiple input sources
-% across multiple requests
-
-% optimize concolic execution
-
-% demonstrate concolic execution system on another Django application
-
 The second repository contains the modifications to the Lab 3 concolic
 execution framework that allow us to support Django applications. Most
 importantly, concolic inputs have to be preserved throughout the
@@ -74,40 +63,35 @@ With an eye towards large applications and the complexity of Django,
 we also wanted to optimize the constraint-checking framework as much
 as possible. Several optimizations added to symex/fuzzer.py.
 
-In addition to zoobar, we also ran our concolic execution system on
-'gradapply' which is a real and a much complex website than zoobar.
-Initially, we were facing challenges with Django version; we developed
-the concolic execution system for Django-1.8, but gradapply was written
-in Django-1.6. Thus, we first extended our system to also support
-Django-1.6. Then, it was straight-forward to extend the checking script
-for gradapply. We are currently checking for 6 different paths and it takes
-77 iterations to complete. Though, we did not aim to write invariants for
-this website and find real bugs, it is certainly possible to do so.
+Use of our concolic framework by the developer is exemplified in
+check-symex-zoobar.py, which was adapted from Lab 3. For reasons
+explained in the Details section, the first step is to make explicit
+the URLs to test and the database query method. Then, the test
+function is defined similarly, using the same invariants as in Lab 3,
+and the concolic tester is invoked on it. Using the default settings
+of checking all database objects and turning on all optimizations, the
+framework runs 48 iterations in approximately 30 seconds.
 
-It is also
-worth noting that the changes to check-symex-zoobar.py are relatively
-straightforward. The passing of request data has been moved out of symflask
-(where it did not belong as it was application-dependent), and the URLs to test
-has been made explicit, but all the invariant tests are pretty much the same,
-as are the ways of invoking the checker.
+Finally, we also ran our concolic execution system on gradapply, which
+is a real and a much complex website than zoobar. Since gradapply is
+written in an older version of Django (1.6), we first extended our
+system to support version 1.6. Then it was straightforward to adapt
+the checking script. The system tests six different URL paths, and
+completes in 77 iterations. In the time we had, we did not aim to
+write invariants for gradapply and find real bugs, though it is
+certainly possible to do so.
 
-Contrary to what we initially thought, we did not have to modify
-Django as part of this project. This was made possible by the dynamic
-nature of Python, which allowed us to patch running Django code, thus
-overwriting or bypassing methods that were incompatible with concolic
-execution.
+Contrary to what we initially thought, we did not have to modify the
+Django codebase. This was made possible by the dynamic nature of
+Python, which allowed us to overwrite or bypass methods that were
+incompatible with concolic execution.
 
 
-\section{Challenges}
+\section{Implementation details}
 
-This required finding ways of preserving concolic execution information during
-the execution of internal framework code in Django, as well as developing
-necessary optimizations to deal with the additional complexity provided by the
-many features Django has to offer.
+Discuss the challenges and the design choices made.
 
-Over the course of developing this framework, we came across a number of
-challenges; both anticipated and unexpected. We list here the more important
-ones, and how we decided to tackle them:
+\subsection{Preserving concolic values}
 
 \begin{enumerate}
 \item URL parsing in Django is based on nested regular expressions that
@@ -199,9 +183,8 @@ ones, and how we decided to tackle them:
 \end{enumerate}
 
 
-\section{Implementation details}
+\subsection{Handling database queries}
 
-\subsection{Handling the Database}
 We implemented 3 different approaches for accessing the database in a
 concolic-compatible way. Each approach offers both positives and
 negatives, and it seems unlikely that any solution will be superior
@@ -284,6 +267,7 @@ than all others in the general setting. An overview of our approaches:
 \end{enumerate}
 
 \subsection{Concolic optimizations}
+
 Because our goal is to deploy concolic execution on large, real-world
 Django web applications, we would like the constraint-checking framework
 to be as efficient as possible. To that end, we implemented the
