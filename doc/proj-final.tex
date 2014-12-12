@@ -38,7 +38,7 @@ application, and show that the same bugs are found in our invariant checker.
 The code is available at \url{https://github.com/jonhoo/django-zoobar}.
 
 The next step was to construct a version of the Lab 3 concolic execution
-framework that cold support Django applications. The biggest change
+framework that could support Django applications. The biggest change
 we made was undoubtedly to make concolic inputs be preserved throughout the
 complex internals of Django, so that they reach the application logic
 intact. This is implemented in \texttt{symex/symdjango.py}, which replaces
@@ -70,7 +70,7 @@ An example of how to initialize the concolic framework, as well as how to issue
 concolic requests can be seen in \texttt{check-symex-zoobar.py}, which was
 adapted from Lab 3. For reasons explained in the Details section below, the
 first step is to make explicit the URLs to test, and the database query method
-to use. The test function and invariants are then defined similarly to in Lab
+to use. The test function and invariants are then defined similarly as in Lab
 3, and the concolic tester is invoked at the bottom of the file. Using the
 default settings of checking all database objects and turning on all
 optimizations, the framework runs 48 iterations in approximately 30 seconds.
