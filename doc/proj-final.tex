@@ -7,24 +7,21 @@
 Luke Anderson, Jon Gjengset, Jeevana Inala, and Andrew Wang \\
 \texttt{\{lukea,jfrg,jinala,wangaj\}@mit.edu}
 }
-\title{6.858 Project Report}
-\subtitle{Concolic Execution for Django Applications}
-\date{\today}
-
+\subtitle{6.858 Project Report}
+\title{Concolic Execution for Django Applications}
+\date{}
 \begin{document}
+
 \maketitle
-
-
 \section{Motivation}
-
 Concolic execution systems allow developers to verify security
 invariants in their applications. This was demonstrated in Lab 3,
 where the Z3 solver was used to find inputs that would trigger
 inconsistencies in zoobar balances. Unfortunately, the lab's
-framework is written specifically for the zoobar web application, and
-would be difficult to adapt for testing any other application. We
-therefore set out to provide an interface to concolic execution that
-works for any web app built on top of the popular Django framework.
+framework is written specifically for the zoobar, and
+would be difficult to adapt for testing other applications. We
+therefore set out to provide a generic concolic execution interface for any Django-based
+web application.
 
 
 \section{Summary of results}
