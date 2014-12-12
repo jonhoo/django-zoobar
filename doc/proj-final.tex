@@ -102,7 +102,8 @@ made and any challenges we faced in its subsection below.
 
 \begin{enumerate}
 \item URL parsing in Django is based on nested regular expressions
-  that are used both to determine which view should be invoked.
+  that are used both to determine which view should be invoked and to do reverse URL
+lookups.
   Unfortunately, regular expressions are not supported by Z3, so we
   needed another way to make the choice of view and the input
   parameters concolic. The simplest solution we arrived at was to
